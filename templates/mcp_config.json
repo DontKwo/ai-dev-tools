@@ -1,0 +1,14 @@
+{
+  "mcpServers": {
+    "ai-dev-tools": {
+      "command": "uv",
+      "args": [
+        "run",
+        "--no-project",
+        "python",
+        "{{MCP_SERVER_PATH}}"
+      ]
+    }
+  }
+}
+
