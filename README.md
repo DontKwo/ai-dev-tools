@@ -127,6 +127,8 @@ uv run --no-project python scripts/claudemd_linter.py . --level strict
 
 ## Documentation Links
 
+- [docs/USER_GUIDE.md](docs/USER_GUIDE.md): Detailed manual on using each tool to audit, clean, and lint codebases.
+- [docs/FAQ.md](docs/FAQ.md): Questions on lint levels, AST rules, and rule suppressions.
 - [docs/LINTER_RULES.md](docs/LINTER_RULES.md): Specifications for all 45 linter codes, suppression comments, and verification levels.
 - [docs/SETUP_GUIDE.md](docs/SETUP_GUIDE.md): Step-by-step setup walkthrough across Windows, macOS, and Linux.
 

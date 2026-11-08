@@ -76,6 +76,7 @@
 
 # Documentation
 - Never create unsolicited .md documentation files (no unrequested READMEs, architecture summaries, or guides). Deliverables explicitly requested by the user are permitted. Internal agent artifacts and scratchpads are permitted. Editing existing documentation when modifying features is permitted.
+- See docs/DEV_MANUAL.md for the complete developer manual for all tools in scripts/, including CLI flags and programmatic APIs.
 
 # Domain Rules
 - For engineering, numerical, or thermodynamic tasks, follow %USERPROFILE%\projects\ai-dev-tools\templates\ENGINEERING_RULES.md. Domain equations adhering to these rules are exempt from single-letter variable checks (Rule 38).
