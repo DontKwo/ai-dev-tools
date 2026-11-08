@@ -16,7 +16,33 @@ def main() -> int:
         default="",
         help="The topic, plan, decision, or idea to grill the user about.",
     )
+    parser.add_argument(
+        "--async",
+        dest="async_mode",
+        action="store_true",
+        help="Print questions with recommended defaults formatted for a plan or PR.",
+    )
     args = parser.parse_args()
+
+    topic_title = args.topic if args.topic else "General Plan or Task"
+
+    if args.async_mode:
+        print(f"### Grilling Questions & Defaults: {topic_title}\n")
+        print("#### Open Questions & Recommended Defaults")
+        print("1. **Core Ambiguity / Design Choice**")
+        print("   - Question: What is the primary architecture or target behavior?")
+        print("   - Recommended Default: Follow standing conventions and existing project patterns.")
+        print("   - Options: A) Standard conventions (recommended), B) Custom configuration, C) Minimal viable path.")
+        print("   - Reason: Preserves consistency and minimizes regression risk.\n")
+        print("2. **Scope Boundaries & Trade-offs**")
+        print("   - Question: What failure modes and edge cases are in scope?")
+        print("   - Recommended Default: Full test matrix with property-based and hostile input coverage.")
+        print("   - Options: A) Full coverage matrix (recommended), B) Happy-path smoke only.")
+        print("   - Reason: Ensures robust verification before declaring done.\n")
+        print("#### Recorded Assumptions (Proceeding with recommended defaults)")
+        print("- Proceeding with recommended defaults unless blocking feedback is received.")
+        print("- Stating all assumptions in plan and pull request summary.")
+        return 0
 
     print(f"Triggering 'Grilling' skill for topic: {args.topic}")
     print("\nInstructions for the AI Agent:")

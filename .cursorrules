@@ -28,9 +28,51 @@
 - Repository tools from `ai-dev-tools` may execute with the host runner (`uv run --no-project python <script>`) when the target project virtual environment lacks tool dependencies.
 - See %USERPROFILE%\projects\ai-dev-tools\templates\PYTHON_RULES.md for additional environment context.
 
+# Proactive Quality
+- Treat short prompts as full tasks held to full engineering standards.
+- Infer unstated requirements (tests, UX, error handling, performance) and apply them via the `implicit-requirements` skill.
+- Find problems yourself by reading code, running the program, and exercising the UI as a user.
+- Fix root causes, not symptoms.
+- Fix small related defects in the same change and list larger ones as follow-ups.
+- Never stop at the literal task if related defects of the same kind are obvious.
+
+# Testing Standard
+- List failure modes and cover each with a test or state the mitigation before declaring done.
+- Prefer generated tests (table-driven, property-based, model-based random sequences) to hand-written happy paths.
+- For user-facing apps, test every UI action against every supported kind of data.
+- Never weaken a test to make it pass.
+- Report exactly what ran and what did not run via the `exhaustive-testing` skill.
+
+# UI/UX Standard
+- Keep existing visual identity unless told otherwise; verify responsiveness from 360px phones to large desktops.
+- Fast and measured performance; meet WCAG AA contrast (minimum 4.5:1), 44px touch targets, and full keyboard use.
+- Include empty, loading, and error states on every screen with specific friendly error messages.
+- Provide confirm or undo for destructive actions.
+- Use colors from theme tokens only; check both light and dark themes.
+- Prevent unreadable text, tiny inputs, or default browser highlight artifacts (see `ux-audit` skill).
+
+# Interaction
+- Ask when the answer materially changes outcome, cannot be found in repo or memory, and is costly to reverse.
+- When asking, run `grill-user` (one question at a time, each with a recommended answer and 2 or 3 options).
+- Otherwise act and state assumptions clearly.
+- Background and cloud agents without live conversation put questions with recommended defaults in the plan, ask only blocking ones, and list assumptions in the PR.
+
+# Memory
+- Read `memory/preferences.md`, `memory/user-profile.md`, and matching `memory/projects/<repo>.md` at session start.
+- Run `session-wrap-up` at session end to propose updates as a separate commit.
+- Never store secrets or sensitive personal data; memory files are public.
+- `AGENTS.md` remains canonical for style rules; memory must not duplicate it.
+
+# Cloud Agents
+- When `%USERPROFILE%\projects\ai-dev-tools` is absent in a cloud VM, use repo-relative paths (e.g. `scripts/claudemd_linter.py`) and host runner `uv run --no-project python <script>`.
+- Finish every session on a new branch with a pull request into main; never push directly to main.
+- PR body must contain: Summary, Assumptions, How verified, Not verified, Risks, Follow-ups.
+- Local workstation behavior remains exactly as specified today.
+
 # After Changes
 - Reply with a brief list: what changed + confirmation it was tested (or state explicitly that it was not tested).
   Example: "Fixed off-by-one in parser. Added retry logic. All 27 unit tests passing."
+- For cloud agent PR bodies, provide sections: Summary, Assumptions, How verified, Not verified, Risks, Follow-ups.
 
 # Documentation
 - Never create unsolicited .md documentation files (no unrequested READMEs, architecture summaries, or guides). Deliverables explicitly requested by the user are permitted. Internal agent artifacts and scratchpads are permitted. Editing existing documentation when modifying features is permitted.

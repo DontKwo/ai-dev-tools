@@ -4,9 +4,12 @@ import sys
 from pathlib import Path
 from typing import List, Tuple
 
+import importlib.util
+
+tomllib = None
 if sys.version_info >= (3, 11):
     import tomllib
-else:
+elif importlib.util.find_spec("tomli") is not None:
     import tomli as tomllib
 
 APPROVED_LICENSES = {"MIT", "Apache-2.0", "BSD-2-Clause", "BSD-3-Clause", "ISC"}
@@ -44,19 +47,35 @@ def parse_pyproject_toml(file_path: Path) -> List[str]:
     packages: List[str] = []
     if not file_path.exists():
         return packages
-    with open(file_path, "rb") as f:
-        data = tomllib.load(f)
 
-    if "project" in data and "dependencies" in data["project"]:
-        for dep in data["project"]["dependencies"]:
-            match = re.match(r"^([a-zA-Z0-9_\-]+)", dep)
-            if match:
-                packages.append(match.group(1))
+    if tomllib is not None:
+        with open(file_path, "rb") as f:
+            data = tomllib.load(f)
 
-    if "tool" in data and "poetry" in data["tool"] and "dependencies" in data["tool"]["poetry"]:
-        for dep in data["tool"]["poetry"]["dependencies"].keys():
-            if dep != "python":
-                packages.append(dep)
+        if "project" in data and "dependencies" in data["project"]:
+            for dep in data["project"]["dependencies"]:
+                match = re.match(r"^([a-zA-Z0-9_\-]+)", dep)
+                if match:
+                    packages.append(match.group(1))
+
+        if "tool" in data and "poetry" in data["tool"] and "dependencies" in data["tool"]["poetry"]:
+            for dep in data["tool"]["poetry"]["dependencies"].keys():
+                if dep != "python":
+                    packages.append(dep)
+        return packages
+
+    content = file_path.read_text(encoding="utf-8")
+    proj_match = re.search(r"\[project\][^\[]*dependencies\s*=\s*\[(.*?)\]", content, re.DOTALL)
+    if proj_match:
+        for dep in re.findall(r'["\']([a-zA-Z0-9_\-]+)', proj_match.group(1)):
+            packages.append(dep)
+
+    poetry_match = re.search(r"\[tool\.poetry\.dependencies\]([^\[]*)", content, re.DOTALL)
+    if poetry_match:
+        for line in poetry_match.group(1).splitlines():
+            m = re.match(r"^\s*([a-zA-Z0-9_\-]+)\s*=", line)
+            if m and m.group(1) != "python":
+                packages.append(m.group(1))
 
     return packages
 

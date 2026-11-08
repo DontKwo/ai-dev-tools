@@ -87,6 +87,11 @@ The tooling suite exposes 3 complementary access methods:
 | **Rule Synchronizer** | `scripts/sync_rules.py` | N/A | `aisync` | Synchronizes instruction files across all installed tools. |
 | **Hook Installer** | `scripts/install_antigravity_hooks.py` | N/A | `aihook` | Installs git pre-commit and Antigravity task hooks. |
 | **Environment Doctor** | `scripts/doctor.py` | N/A | N/A | Audits tool configs, MCP registration, and filepaths. |
+| **Implicit Requirements** | N/A | `implicit-requirements` | N/A | Infers unstated quality, error handling, and performance checks. |
+| **Exhaustive Testing** | N/A | `exhaustive-testing` | N/A | Stateful action crawl, seeded corpus, and property test matrix. |
+| **UX Auditor** | N/A | `ux-audit` | N/A | Multi-viewport responsive checks, WCAG AA contrast, and themes. |
+| **Definition of Done** | N/A | `definition-of-done` | N/A | Pre-flight verification checklist for clean branches and PRs. |
+| **Session Wrap-up** | N/A | `session-wrap-up` | N/A | Records durable knowledge and user preferences into memory files. |
 
 ---
 
@@ -97,10 +102,11 @@ ai-dev-tools/
 ├── bin/          # 21 shell shortcuts for manual terminal use
 ├── docs/         # Setup manual and linter rule specifications
 ├── mcp/          # Model Context Protocol server exposing 23 native tools
+├── memory/       # Plain Markdown durable preferences, decisions, and repo profiles
 ├── scripts/      # Core Python linters, analyzers, and utilities
-├── skills/       # 10 modular agent skills with SKILL.md runbooks
+├── skills/       # 16 modular agent skills with SKILL.md runbooks
 ├── templates/    # Instruction rules, engineering standards, and MCP templates
-└── tests/        # 258 unit tests covering rules and tools
+└── tests/        # Unit tests covering rules, tools, and behavior layer
 ```
 
 ---
