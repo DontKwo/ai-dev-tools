@@ -1,3 +1,5 @@
 # Project Requirements
 # Author: DontKwo
 # License: GPL-3.0-or-later
+pytest
+tomli; python_version < "3.11"

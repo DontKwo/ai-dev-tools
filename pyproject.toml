@@ -1,6 +1,11 @@
 [project]
 name = "ai-dev-tools"
+version = "0.0.1"
 authors = [
   { name = "DontKwo" }
 ]
 license = { text = "GPL-3.0-or-later" }
+[tool.pytest.ini_options]
+pythonpath = [
+  "."
+]
