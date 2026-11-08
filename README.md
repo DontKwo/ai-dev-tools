@@ -123,3 +123,6 @@ uv run --no-project python scripts/claudemd_linter.py . --level strict
 
 - [docs/LINTER_RULES.md](docs/LINTER_RULES.md): Specifications for all 45 linter codes, suppression comments, and verification levels.
 - [docs/SETUP_GUIDE.md](docs/SETUP_GUIDE.md): Step-by-step setup walkthrough across Windows, macOS, and Linux.
+
+## Developer Tools Disclaimer
+DEVELOPER TOOLS DISCLAIMER: ai-dev-tools provides automated AST analysis, code inspection, and refactoring scripts. The software is provided AS IS without warranty of any kind. The author assumes no liability for code modifications, data loss, or build errors resulting from automated tool execution.

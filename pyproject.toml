@@ -1,0 +1,6 @@
+[project]
+name = "ai-dev-tools"
+authors = [
+  { name = "DontKwo" }
+]
+license = { text = "GPL-3.0-or-later" }
