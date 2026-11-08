@@ -21,7 +21,7 @@ The setup script configures four integration layers:
    - Command wrappers in `bin/` (`ailint`, `aifix`, `airepo`, `aimd`, `aitree`, `aisearch`, `airollback`, etc.) utilizing `uv` when available.
 
 4. **Agent Skills**
-   - 10 on-demand workflow runbooks in `skills/` installed to Google Antigravity (`~/.gemini/antigravity/skills/` globally or `.agent/skills/` in workspaces).
+   - 16 on-demand workflow runbooks in `skills/` installed to Google Antigravity (`~/.gemini/antigravity/skills/` globally or `.agent/skills/` in workspaces).
 
 ---
 

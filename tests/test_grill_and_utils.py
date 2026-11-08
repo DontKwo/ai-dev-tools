@@ -62,6 +62,16 @@ class TestGrillUser(unittest.TestCase):
         self.assertIn("decision", output)
         self.assertIn("Instructions", output)
 
+    @patch("sys.argv", ["grill_user.py", "--async", "sample_task"])
+    @patch("sys.stdout", new_callable=io.StringIO)
+    def test_main_async_mode(self, mock_stdout: io.StringIO) -> None:
+        exit_code = grill_user.main()
+        output = mock_stdout.getvalue()
+
+        self.assertEqual(exit_code, 0)
+        self.assertIn("Grilling Questions & Defaults: sample_task", output)
+        self.assertIn("Recommended Default:", output)
+
 
 if __name__ == "__main__":
     unittest.main()
