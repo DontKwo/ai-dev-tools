@@ -109,15 +109,50 @@ This scans and reports every instance of `# noqa`, `// noqa`, `# type: ignore`, 
 | **43** | Engineering | Missing physical units or unit suffix on constant | Add unit suffix (`_kg`, `_m`, `_pa`, `_kw`) or comment. |
 | **44** | Style | Artificial equation line break when under 140 characters | Keep expressions on a single horizontal line up to 140 chars. |
 | **45** | Engineering | Over-engineered OOP in numerical code | Favor plain dictionaries and data structures over abstract base classes. |
+| **46** | UI / Identity | Control without stable ID matching id_pattern | Assign a unique stable ID (screen.action format). |
+| **47** | UI / Evidence | Control never pressed with real input | Execute control in automated test via real user input to generate evidence trace. |
+| **48** | UI / Safety | Test bypasses the UI under ui_globs | Replace direct handler calls, signal emits, or force flags with real input drivers. |
+| **49** | UI / Testing | No assertion after interaction | Add at least one non-trivial assertion following the user interaction in the test. |
+| **50** | UI / Evidence | Enabled and disabled states not both exercised | Exercise control in both enabled and disabled states to verify behavior. |
+| **51** | UI / Evidence | Combination gap | Run combination harness (combo.run) covering required state vectors and action sequences. |
+| **52** | UI / Registry | Tooltip registry hygiene | Clean up orphan registry entries, duplicate text, trailing periods, or capitalization flaws. |
+| **53** | UI / Layout | Element overlap, clipping, truncation, occlusion, or off-screen | Adjust layout geometry, word wrap, or minimum bounds to resolve layout findings. |
+| **54** | UI / Layout | Layout hazard in source | Remove fixed pixel dimensions, absolute positioning, or un-scrolled single-line bounds. |
+| **55** | UI / A11y | Missing accessible name | Provide accessible name or description via registry or accessibility attributes. |
+| **56** | UI / A11y | Target below minimum touch size | Enforce minimum control dimensions (24x24 px web, 44x44 pt iOS, 48x48 dp Android). |
+| **57** | UI / Styling | Contrast failure in theme tokens | Adjust foreground and background color pairs to meet WCAG contrast ratio (4.5:1 text, 3:1 icons). |
+| **58** | UI / Styling | Design token literal | Replace inline pixel, dp, or dimension constants with tokens from central theme module. |
+| **59** | UI / i18n | User-visible string literal | Extract hardcoded UI text into string registry or localization module. |
+| **60** | UI / i18n | Sentence built by concatenation | Use parameterized translation templates with positional or named placeholders. |
+| **61** | UI / UX | Raw exception text shown to user | Catch exceptions and show friendly actionable messages; write details to logs. |
+| **62** | UI / Perf | Blocking call in UI handler | Offload heavy operations (sleep, network, disk, subprocess) to background worker threads. |
+| **63** | UI / Robustness | Missing global exception hook | Install global uncaught exception handler (sys.excepthook, window.onerror). |
+| **64** | UI / A11y | Keyboard operability failure | Remove positive tabindex, ensure logical tab sequence, and support Space/Enter activation. |
+| **65** | UI / UX | Shortcut conflict | Resolve duplicate shortcut bindings in same scope or standard system shortcut shadowing. |
+| **66** | UI / UX | Dialog defaults missing | Designate default button, support Enter submission, and wire Escape cancellation. |
+| **67** | UI / UX | Destructive action without confirmation | Add confirmation dialog or reversible undo mechanism for destructive operations. |
+| **68** | UI / Safety | Double submit vulnerability | Disable submit button or display loading indicator while operation is in-flight. |
+| **69** | UI / Layout | Elided text without full-text tooltip | Expose complete un-truncated text in tooltip registry for elided labels. |
+| **70** | UI / Window | Window bounds hazard | Enforce minimum window geometry and constrain restore position to active monitors. |
+| **71** | UI / Perf | Latency budget exceeded | Optimize handler execution to complete within 100 ms frame threshold. |
+| **72** | UI / Memory | Memory leak detected | Ensure widget and node allocations return to baseline across dialog lifecycle cycles. |
+| **73** | UI / Perf | Startup flash or delayed initialization | Delay window visibility until content is ready (ready-to-show) or display skeleton UI. |
+| **74** | UI / Testing | Missing state matrix | Register loading, empty, error, and populated state variants for screen audit. |
+| **75** | UI / A11y | Reduced motion ignored | Gate animations behind user accessibility settings or prefers-reduced-motion. |
+| **76** | UI / A11y | Disabled control lacks explanation | Add disabled explanation to tooltip registry so users understand reason for state. |
+| **77** | UI / Testing | Locale and scale matrix not run | Execute UI audit matrix with pseudo-locale, right-to-left layout, and 1.5x font scale. |
+| **78** | UI / Architecture | Bridge mismatch | Synchronize exported host methods with invoked frontend bridge channels. |
+| **79** | UI / Copy | Label style inconsistency | Standardize action verbs and casing conventions across application controls. |
 
 ---
 
-## Supported Languages
+## Supported Languages & UI Frameworks
 
 The linter scans code across multiple ecosystems:
-- **Python**: `.py` (Full AST, typing, Qt widgets, dead-code detection)
-- **Web & JavaScript**: `.js`, `.jsx`, `.ts`, `.tsx`, `.html`, `.css`, `.scss`, `.vue`, `.svelte`
-- **Systems & Native**: `.rs` (Rust), `.go` (Go), `.c`, `.cpp`, `.h`, `.hpp`
+- **Python**: `.py` (Full AST, typing, PyQt/PySide, Tkinter, wxPython, Textual, Kivy)
+- **Web & Desktop Frontend**: `.js`, `.jsx`, `.ts`, `.tsx`, `.html`, `.css`, `.scss`, `.vue`, `.svelte` (Plain Web, Electron, pywebview, Tauri)
+- **Mobile**: Kotlin/Java (`.kt`, `.java`, `res/layout/*.xml` for Android Views and Jetpack Compose), Dart (`.dart` for Flutter), Swift (`.swift` for SwiftUI and UIKit)
+- **Desktop & Native**: `.xaml`, `.axaml`, `.cs` (.NET, WPF, Avalonia, MAUI), `.rs` (Rust), `.go` (Go), `.c`, `.cpp`, `.h`, `.hpp`
 - **Shell**: `.sh`, `.bash`, `.zsh`
 - **Documentation**: `.md`, `.txt`, `.rst`
 

@@ -26,6 +26,12 @@ PYTHON_RULES_PATH = REPO_ROOT / "templates" / "PYTHON_RULES.md"
 
 
 
+def check_ui_helpers(repo_root: Path) -> dict[str, bool]:
+    ui_templates = repo_root / "templates" / "ui_audit"
+    frameworks = ("pyqt", "web", "android", "flutter", "ios", "tkinter", "wxpython", "kivy", "textual", "dotnet")
+    return {fw: (ui_templates / fw).is_dir() for fw in frameworks}
+
+
 def check_git_tracking(repo_root: Path) -> dict[str, Union[str, bool]]:
     info: dict[str, Union[str, bool]] = {"has_git": False, "is_repo": False, "has_tracking": False, "branch": ""}
     git_bin = shutil.which("git")
@@ -392,7 +398,17 @@ def run_diagnostics(auto_heal: bool = False, clean_cache: bool = False, repair: 
         else:
             print(f"  [OK] {mcp_name:20}: Active (ai-dev-tools registered and valid)")
 
-    # 8. Healing action
+    # 8. Check UI Audit Test Helpers
+    print("\n[8] UI Audit Helpers:")
+    ui_status = check_ui_helpers(REPO_ROOT)
+    installed_count = sum(1 for v in ui_status.values() if v)
+    if installed_count == len(ui_status):
+        print(f"  [OK] UI audit helpers installed for all {installed_count} frameworks ({', '.join(ui_status.keys())})")
+    else:
+        missing = [k for k, v in ui_status.items() if not v]
+        print(f"  [WARN] Missing UI audit helper templates for: {', '.join(missing)}")
+
+    # 9. Healing action
     if needs_heal:
         print(f"\n[!] Found {len(needs_heal)} configuration(s) pointing to stale or missing linter paths.")
         if auto_heal:

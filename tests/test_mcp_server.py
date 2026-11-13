@@ -63,8 +63,8 @@ class TestMCPServer(unittest.TestCase):
         self.assertIn("lint ok", res[0].get("text", ""))
 
     def test_tools_list_count(self) -> None:
-        """Verify all 23 tools are defined."""
-        self.assertEqual(len(TOOLS), 24)
+        """Verify all 26 tools are defined."""
+        self.assertEqual(len(TOOLS), 26)
         for t in TOOLS:
             self.assertIn("name", t)
             self.assertIn("description", t)
@@ -178,6 +178,24 @@ class TestMCPServer(unittest.TestCase):
             # The JSON decode error crashes the loop gracefully, ending execution without writing response
             with self.assertRaises(Exception):
                 main()
+
+
+    def test_ui_tools_registered(self) -> None:
+        tool_names = {t["name"] for t in TOOLS}
+        self.assertIn("ui_lint", tool_names)
+        self.assertIn("ui_evidence_summary", tool_names)
+
+    @patch("mcp.server.run_command_tool")
+    def test_handle_ui_lint(self, mock_run: MagicMock) -> None:
+        mock_run.return_value = "UI audit passed"
+        res = handle_tool_call("ui_lint", {"target": "."})
+        self.assertEqual(res, [{"type": "text", "text": "UI audit passed"}])
+
+    @patch("mcp.server.run_command_tool")
+    def test_handle_ui_evidence_summary(self, mock_run: MagicMock) -> None:
+        mock_run.return_value = "Evidence summary"
+        res = handle_tool_call("ui_evidence_summary", {"target": "."})
+        self.assertEqual(res, [{"type": "text", "text": "Evidence summary"}])
 
 
 if __name__ == "__main__":

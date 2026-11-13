@@ -6,7 +6,7 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch, MagicMock
 
-from scripts.doctor import check_installed_skills, inspect_mcp_config, check_git_tracking, check_python_version
+from scripts.doctor import check_installed_skills, inspect_mcp_config, check_git_tracking, check_python_version, check_ui_helpers
 
 
 class TestDoctor(unittest.TestCase):
@@ -199,6 +199,12 @@ class TestDoctor(unittest.TestCase):
         self.assertTrue(info["has_toml"])
         self.assertEqual(info["requires_python"], ">=3.10")
         self.assertFalse(info["meets_req"])
+
+    def test_check_ui_helpers(self) -> None:
+        helpers = check_ui_helpers(Path(__file__).resolve().parent.parent)
+        self.assertIn("pyqt", helpers)
+        self.assertIn("web", helpers)
+        self.assertTrue(all(helpers.values()))
 
 if __name__ == "__main__":
     unittest.main()

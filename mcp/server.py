@@ -37,6 +37,7 @@ VARS_SCRIPT = REPO_ROOT / "scripts" / "check_variable_names.py"
 SPELL_SCRIPT = REPO_ROOT / "scripts" / "spell_checker.py"
 GRILL_SCRIPT = REPO_ROOT / "scripts" / "grill_user.py"
 TYPE_COVERAGE_SCRIPT = REPO_ROOT / "scripts" / "type_coverage.py"
+AIUI_SCRIPT = REPO_ROOT / "scripts" / "aiui.py"
 
 IS_WINDOWS = platform.system() == "Windows"
 BASE_CMD: list[str] = (
@@ -373,6 +374,26 @@ TOOLS = [
             },
         },
     },
+    {
+        "name": "ui_lint",
+        "description": "Run multi-framework static and runtime UI checks across components, layouts, and test evidence.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "target": {"type": "string", "description": "The file or directory to analyze (default: current directory)."},
+            },
+        },
+    },
+    {
+        "name": "ui_evidence_summary",
+        "description": "Summarize and inspect ui_evidence.json interaction logs, test cases, and layout findings.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "target": {"type": "string", "description": "Target project root directory (default: current directory)."},
+            },
+        },
+    },
 ]
 
 
@@ -635,7 +656,21 @@ def _handle_grill_user(arguments: dict, effective_cwd: Path | None) -> list[dict
 
 def _handle_analyze_type_coverage(arguments: dict, effective_cwd: Path | None) -> list[dict]:
     target = arguments.get("target", ".")
-    cmd = BASE_CMD + [ str(TYPE_COVERAGE_SCRIPT), target]
+    cmd = BASE_CMD + [str(TYPE_COVERAGE_SCRIPT), target]
+    output = run_command_tool(cmd, cwd=effective_cwd)
+    return [{"type": "text", "text": output}]
+
+
+def _handle_ui_lint(arguments: dict, effective_cwd: Path | None) -> list[dict]:
+    target = arguments.get("target", ".")
+    cmd = BASE_CMD + [str(AIUI_SCRIPT), "audit", target]
+    output = run_command_tool(cmd, cwd=effective_cwd)
+    return [{"type": "text", "text": output}]
+
+
+def _handle_ui_evidence_summary(arguments: dict, effective_cwd: Path | None) -> list[dict]:
+    target = arguments.get("target", ".")
+    cmd = BASE_CMD + [str(AIUI_SCRIPT), "evidence", target]
     output = run_command_tool(cmd, cwd=effective_cwd)
     return [{"type": "text", "text": output}]
 
@@ -664,6 +699,8 @@ TOOL_HANDLERS = {
     "check_spelling": _handle_check_spelling,
     "grill_user": _handle_grill_user,
     "analyze_type_coverage": _handle_analyze_type_coverage,
+    "ui_lint": _handle_ui_lint,
+    "ui_evidence_summary": _handle_ui_evidence_summary,
 }
 
 

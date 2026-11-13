@@ -13,6 +13,16 @@ import sys
 from pathlib import Path
 from collections import defaultdict
 from multiprocessing import Pool
+from pathlib import Path
+
+_REPO_ROOT = Path(__file__).resolve().parent.parent
+if str(_REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(_REPO_ROOT))
+
+from scripts.ui_adapters import get_all_adapters  # noqa: 12
+from scripts.ui_config import load_ui_config  # noqa: 12
+from scripts.ui_engine import build_manifest, evaluate_evidence_rules, evaluate_static_rules  # noqa: 12
+from scripts.ui_evidence import load_ui_evidence  # noqa: 12
 
 REPORT_PATH = Path(__file__).parent / "lint_report.txt"
 CACHE_PATH = Path(__file__).parent / ".lint_cache.json"
@@ -64,6 +74,40 @@ LEGEND = {
     43: "Duplicate string or integer keys in dictionary literals.",
     44: "Artificial equation line break (splitting expression across lines unnecessarily when under 140 chars).",
     45: "Over-engineered OOP in numerical code (unnecessary ABC/metaclass for simple mathematical POD).",
+    46: "Control without stable ID matching id_pattern. Assign a unique stable ID (screen.action format).",
+    47: "Control never pressed with real input in evidence (or missing ui_evidence.json for project with UI).",
+    48: "Test bypasses the UI under ui_globs (calling handler directly, emitting signal, force: true).",
+    49: "No assertion after interaction in UI test function. Require at least one non-trivial assertion.",
+    50: "Enabled and disabled states not both exercised for control marked can_disable in manifest.",
+    51: "Combination gap. Missing required ordered pairs, ordered triples, or state vectors in ui_evidence.json.",
+    52: "Tooltip registry hygiene: orphan entry, duplicate text, or style violation.",
+    53: "Layout failure in evidence: element overlap, clipping, truncation, occlusion, or off-screen bounds.",
+    54: "Layout hazard in source: fixed geometry, position: absolute, or overflow clip without scroll container.",
+    55: "Missing accessible name: icon-only control or input lacking accessible label or contentDescription.",
+    56: "Target below minimum touch size (24x24 px web, 44x44 pt iOS, 48x48 dp Android).",
+    57: "Contrast failure in theme tokens: foreground/background pair fails WCAG minimum ratio.",
+    58: "Design token literal: hardcoded pixel, dp, sp, or dimension literal outside theme module.",
+    59: "User-visible string literal: label, title, or message hardcoded inline outside strings module.",
+    60: "Sentence built by string concatenation or f-string assembly. Use translation templates.",
+    61: "Raw exception text or traceback shown directly to user in dialog or alert.",
+    62: "Blocking call in UI handler: time.sleep, synchronous HTTP, or subprocess execution on UI thread.",
+    63: "Missing global exception hook or visible error surface (sys.excepthook, qInstallMessageHandler).",
+    64: "Keyboard operability failure: positive tabindex, NoFocus on interactive control, or unhandled click.",
+    65: "Shortcut conflict: duplicate keyboard shortcut bound in same scope or system shortcut shadowed.",
+    66: "Dialog defaults: dialog missing default button, enter submission, or escape cancellation.",
+    67: "Destructive action without confirmation or undo capability.",
+    68: "Double submit: submit-like control lacks debouncing or in-flight disabled state.",
+    69: "Elided or truncated text lacks full-text tooltip in registry.",
+    70: "Window bounds hazard: top-level window missing minimum size or unrestricted multi-monitor restore.",
+    71: "Latency budget exceeded: interaction response time exceeds 100 ms frame threshold.",
+    72: "Memory leak detected: live widget/node count fails to return to baseline after open/close cycles.",
+    73: "Startup flash or missing skeleton during delayed application initialization.",
+    74: "Missing state matrix: view with asynchronous data loading lacks registered state variants.",
+    75: "Reduced motion preference ignored: animations lack toggle or prefers-reduced-motion media query.",
+    76: "Disabled control lacks visible or accessible explanation in tooltip registry.",
+    77: "Locale and scale matrix not run: missing pseudo-locale, right-to-left, or font scale test cells.",
+    78: "Bridge mismatch: exposed backend method uncalled or frontend calls undefined bridge channel.",
+    79: "Label style inconsistency: mixed casing, trailing periods, or inconsistent action verbs.",
 }
 
 TOOLTIP_TARGET_CLASSES = {
@@ -92,6 +136,7 @@ SUPPORTED_EXTENSIONS = {
     ".html", ".htm", ".css", ".scss", ".vue", ".svelte",
     ".rs", ".go", ".c", ".cpp", ".cc", ".cxx", ".h", ".hpp",
     ".sh", ".bash", ".zsh",
+    ".ui", ".qml", ".xml", ".kt", ".dart", ".swift", ".kv", ".tcss", ".xaml", ".axaml",
 }
 
 EXCLUDED_DIRS = {
@@ -333,8 +378,9 @@ LEVEL_RULES: dict[str, set[int]] = {
         1, 2, 3, 4, 5, 6, 7, 8, 9, 10,
         14, 15, 16, 17, 18, 19, 22, 24, 27,
         36, 37, 38, 39, 40, 41, 42, 43, 44, 45,
+        46, 47, 48, 49, 54,
     },
-    "full": set(range(1, 46)),
+    "full": set(range(1, 80)),
 }
 
 HEADING_RE = re.compile(r"^#{1,6}\s+(.+)$")
@@ -1062,8 +1108,19 @@ def scan_single_file(path_str: str) -> tuple[str, list[tuple[str, int, int]], di
         funcs = extract_function_bodies(source)
     elif path.suffix in (".md", ".txt", ".rst"):
         scan_markdown_headings(path, lines, violations)
-    elif path.suffix in (".js", ".jsx", ".ts", ".tsx", ".rs", ".go", ".c", ".cpp", ".h", ".sh"):
+    elif path.suffix in (".js", ".jsx", ".ts", ".tsx", ".rs", ".go", ".c", ".cpp", ".h", ".sh", ".kt", ".dart", ".swift", ".cs"):
         scan_comment_blocks(path, lines, violations)
+
+    for ad in get_all_adapters():
+        if path.suffix in ad.extensions:
+            for site in ad.tooltip_literal_sites(path, source):
+                line_text = lines[site.line - 1] if site.line - 1 < len(lines) else ""
+                if not suppressed(line_text, site.code):
+                    violations.append((site.file, site.line, site.code))
+            for site in ad.layout_hazards(path, source):
+                line_text = lines[site.line - 1] if site.line - 1 < len(lines) else ""
+                if not suppressed(line_text, site.code):
+                    violations.append((site.file, site.line, site.code))
 
     serializable_violations = [(str(v[0]), v[1], v[2]) for v in violations]
     return path_str, serializable_violations, funcs
@@ -1252,6 +1309,7 @@ def parse_cli_args(raw_args: list[str]) -> tuple[str, str, set[int], set[int], d
         "no_parallel": False,
         "no_ruff": False,
         "report": None,
+        "ui_evidence": None,
     }
     target = "."
 
@@ -1303,6 +1361,12 @@ def parse_cli_args(raw_args: list[str]) -> tuple[str, str, set[int], set[int], d
             i += 1
         elif arg == "--no-ruff":
             flags["no_ruff"] = True
+            i += 1
+        elif arg == "--ui-evidence" and i + 1 < len(raw_args):
+            flags["ui_evidence"] = Path(raw_args[i + 1])
+            i += 2
+        elif arg.startswith("--ui-evidence="):
+            flags["ui_evidence"] = Path(arg.split("=", 1)[1])
             i += 1
         elif not arg.startswith("--"):
             if not target_set:
@@ -1422,6 +1486,22 @@ def main() -> None:
     if 40 in active_codes and not flags["no_ruff"]:
         ruff_violations = run_standard_linter(root)
         violations.extend(ruff_violations)
+
+    ui_active_codes = {c for c in active_codes if c in range(46, 80)}
+    if ui_active_codes:
+        ui_cfg = load_ui_config(root)
+        ui_manifest = build_manifest(root, ui_cfg, files=files)
+        if ui_manifest.controls or ui_manifest.screens:
+            ui_static = evaluate_static_rules(root, ui_manifest, ui_cfg, files=files)
+            for sv in ui_static:
+                if sv[2] in active_codes:
+                    violations.append(sv)
+            ev_path = flags["ui_evidence"] if flags.get("ui_evidence") else (root / ui_cfg.evidence_path)
+            ev_obj = load_ui_evidence(ev_path, ui_manifest)
+            ui_ev = evaluate_evidence_rules(root, ui_manifest, ev_obj, ui_cfg)
+            for ev in ui_ev:
+                if ev[2] in active_codes:
+                    violations.append(ev)
 
     violations = [v for v in violations if v[2] in active_codes]
 
