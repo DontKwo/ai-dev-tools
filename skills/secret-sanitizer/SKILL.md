@@ -13,7 +13,7 @@ Detect leaked credentials and authentication secrets before code changes leave t
 Scan the repository or specific files:
 
 ```bash
-uv run --no-project python scripts/secret_sanitizer.py [target]
+aitools secrets [target]
 ```
 
 Options:

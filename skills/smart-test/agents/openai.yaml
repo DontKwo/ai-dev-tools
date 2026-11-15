@@ -1,0 +1,3 @@
+interface:
+  display_name: "Smart Test"
+  short_description: "Analyze modified files from git diffs and automatically run only the unit tes..."

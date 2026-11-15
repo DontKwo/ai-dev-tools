@@ -15,7 +15,7 @@ Inspect repository structure and extract concise code representations without to
 Generate a compact map of classes, methods, and functions:
 
 ```bash
-uv run --no-project python scripts/repo_map.py [target]
+aitools repo-map [target]
 ```
 
 Options:
@@ -27,7 +27,7 @@ Options:
 Print a visual directory tree with line counts and file sizes:
 
 ```bash
-uv run --no-project python scripts/dir_overview.py [target]
+aitools tree [target]
 ```
 
 Options:
@@ -38,7 +38,7 @@ Options:
 Read targeted line ranges with line numbering:
 
 ```bash
-uv run --no-project python scripts/slice_file.py <path> <start_line>-<end_line>
+aitools slice <path> <start_line>-<end_line>
 ```
 
 ### 4. Pack Context Bundle
@@ -46,7 +46,7 @@ uv run --no-project python scripts/slice_file.py <path> <start_line>-<end_line>
 Combine source files into an organized prompt package:
 
 ```bash
-uv run --no-project python scripts/pack_context.py [target] --out <output_file>
+aitools context [target] --out <output_file>
 ```
 
 ### 5. Token Budget Analyzer
@@ -54,7 +54,7 @@ uv run --no-project python scripts/pack_context.py [target] --out <output_file>
 Measure token consumption across project files:
 
 ```bash
-uv run --no-project python scripts/token_budget.py [target]
+aitools tokens [target]
 ```
 
 ## Best Practice

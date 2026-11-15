@@ -29,7 +29,7 @@ EXCLUDED_DIRS = {
     ".cache", "target", "vendor", ".ai_checkpoints",
 }
 
-TAGS = ["TODO", "FIXME", "BUG", "HACK", "NOTE", "OPTIMIZE"]
+TAGS = ["TODO", "FIXME", "BUG", "HACK", "NOTE", "OPTIMIZE"]  # noqa: 91
 TAG_PATTERN = re.compile(r"(?:#|//|/\*|<!--)\s*(" + "|".join(TAGS) + r")\b\s*(?:\(([^)]+)\))?[:\s-]*\s*(.*)", re.IGNORECASE)
 
 

@@ -13,7 +13,7 @@ Audit and fix character encoding corruption across source and text files.
 Scan and repair files in a path:
 
 ```bash
-uv run --no-project python scripts/clean_encoding.py [target]
+aitools clean [target]
 ```
 
 Options:

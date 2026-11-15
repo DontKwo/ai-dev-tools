@@ -15,7 +15,7 @@ Maintain safety checkpoints during multi-step refactors or automated code modifi
 Create an instant file snapshot with a descriptive label:
 
 ```bash
-uv run --no-project python scripts/rollback.py save "<label>"
+aitools checkpoint save "<label>"
 ```
 
 ### 2. List Checkpoints
@@ -23,7 +23,7 @@ uv run --no-project python scripts/rollback.py save "<label>"
 View saved checkpoints and creation timestamps:
 
 ```bash
-uv run --no-project python scripts/rollback.py list
+aitools checkpoint list
 ```
 
 ### 3. Review Diffs
@@ -31,7 +31,7 @@ uv run --no-project python scripts/rollback.py list
 Preview modifications made since a checkpoint:
 
 ```bash
-uv run --no-project python scripts/rollback.py diff [label]
+aitools checkpoint diff [label]
 ```
 
 ### 4. Restore Workspace
@@ -39,7 +39,7 @@ uv run --no-project python scripts/rollback.py diff [label]
 Revert modified files to the exact checkpoint state:
 
 ```bash
-uv run --no-project python scripts/rollback.py restore [label]
+aitools checkpoint restore [label]
 ```
 
 ## Recommended Workflow

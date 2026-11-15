@@ -1,0 +1,3 @@
+interface:
+  display_name: "Diagnosing Bugs"
+  short_description: "Run a hypothesis-driven debugging loop with a minimal reproduction command, t..."

@@ -10,7 +10,6 @@ import re
 import shutil
 import subprocess
 import sys
-from pathlib import Path
 from collections import defaultdict
 from multiprocessing import Pool
 from pathlib import Path
@@ -19,10 +18,21 @@ _REPO_ROOT = Path(__file__).resolve().parent.parent
 if str(_REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(_REPO_ROOT))
 
+from scripts.custom_linter import (  # noqa: 12
+    CUSTOM_CONFIG_FILENAME,
+    CUSTOM_EXAMPLE_FILENAME,
+    CustomLinterConfig,
+    filter_overridden_violations,
+    is_ignored_by_custom_config,
+    load_custom_linter_config,
+    scan_custom_rules_for_file,
+)
+from scripts.tools_config import load_tools_config  # noqa: 12
 from scripts.ui_adapters import get_all_adapters  # noqa: 12
 from scripts.ui_config import load_ui_config  # noqa: 12
 from scripts.ui_engine import build_manifest, evaluate_evidence_rules, evaluate_static_rules  # noqa: 12
 from scripts.ui_evidence import load_ui_evidence  # noqa: 12
+from scripts.utils import detect_android_release_issues  # noqa: 12
 
 REPORT_PATH = Path(__file__).parent / "lint_report.txt"
 CACHE_PATH = Path(__file__).parent / ".lint_cache.json"
@@ -52,7 +62,7 @@ LEGEND = {
     21: "Unused function, method, or import. Remove it or suppress with # noqa: 21.",
     22: "Import performed inside try/except block. All dependencies should exist via uv; move import to top level.",
     23: "Tooltip text passed as a literal string. Import it from a master tooltip list (or per-tool sub-list) instead of writing the string inline.",
-    24: "TODO/FIXME/HACK/XXX comment left in code. Resolve it or file a tracked issue and remove the comment.",
+    24: "TODO/FIXME/HACK/XXX comment left in code. Resolve it or file a tracked issue and remove the comment.",  # noqa: 91
     25: "Leftover print() call. Use logging or remove the debug statement.",
     26: "Hardcoded absolute filesystem path. Use a relative path or a configured constant.",
     27: "Exception caught and replaced with a different, unrelated exception without 'raise ... from'. Chain it or preserve the original.",
@@ -108,6 +118,18 @@ LEGEND = {
     77: "Locale and scale matrix not run: missing pseudo-locale, right-to-left, or font scale test cells.",
     78: "Bridge mismatch: exposed backend method uncalled or frontend calls undefined bridge channel.",
     79: "Label style inconsistency: mixed casing, trailing periods, or inconsistent action verbs.",
+    80: "Literal Unicode escape sequence (e.g. \\u00D7) rendered literally in JSX/HTML text. Use the actual UTF-8 character (×) or a JS string expression.",
+    81: "Unguarded mutating click handler in view-only component. Gate with an explicit edit mode state or confirmation.",
+    82: "Silent fallback pass-through in domain transformer. Fallback to parsing raw text rather than returning unparsed strings silently.",
+    83: "Unbounded option chip collection. Map over dynamic collections using <select>, pagination, or search instead of raw buttons.",
+    84: "Unreset browser control styling or missing dark color-scheme in root CSS. Declare color-scheme: dark and button background reset.",
+    85: "Sub-legible micro-typography (< 11px) in UI or SVG. Use >= 12px (text-xs) for readable UI text.",
+    86: "Unchecked SVG text map collision. Guard mapped <text> nodes inside <svg> against bounding-box overlap.",
+    87: "Stale embedded frontend bundle or release binary. Rebuild dist/ assets and executable after source edits.",
+    88: "Desktop local-server entrypoint missing lifecycle handlers (shutdown/heartbeat, console close, or --self-test).",
+    89: "Release workflow triggers only on tags without push/pull_request coverage, uses a static 'latest' tag_name, signs Android release with debug key or allows cleartext traffic, or leaves superseded root scripts.",
+    90: "Ambiguous mass unit ('tons', 'ton', or bare 't') in UI display. Use explicit 'lbs' or 'kg'.",
+    91: "Custom user linter rule violation (banned term/pattern in linter_custom.yaml). Remove or replace the flagged pattern.",
 }
 
 TOOLTIP_TARGET_CLASSES = {
@@ -145,7 +167,7 @@ EXCLUDED_DIRS = {
     ".cache", "target", "vendor", ".ai_checkpoints",
 }
 
-# Category A: AI-writing signatures
+# Section 1: AI-writing signatures
 UNICODE_BAD = {
     "\u2014": 1,  # em dash
     "\u2013": 2,  # en dash
@@ -372,15 +394,16 @@ LEVEL_RULES: dict[str, set[int]] = {
     "standard": {
         1, 2, 3, 4, 5, 6, 7, 8, 9, 10,
         14, 15, 16, 17, 18, 19, 22, 24, 27,
-        36, 37, 40, 41, 44,
+        36, 37, 40, 41, 44, 80, 91,
     },
     "strict": {
         1, 2, 3, 4, 5, 6, 7, 8, 9, 10,
-        14, 15, 16, 17, 18, 19, 22, 24, 27,
+        14, 15, 16, 17, 18, 19, 22, 24, 26, 27,
         36, 37, 38, 39, 40, 41, 42, 43, 44, 45,
-        46, 47, 48, 49, 54,
+        46, 47, 48, 49, 54, 80, 81, 82, 83,
+        84, 85, 86, 87, 88, 89, 90, 91,
     },
-    "full": set(range(1, 80)),
+    "full": set(range(1, 92)),
 }
 
 HEADING_RE = re.compile(r"^#{1,6}\s+(.+)$")
@@ -391,7 +414,7 @@ NOQA_RE = re.compile(
     re.IGNORECASE,
 )
 LONG_OK_RE = re.compile(r"(?:#|//)\s*long-comment-ok", re.IGNORECASE)
-TODO_RE = re.compile(r"(?:#|//|/\*)\s*(TODO|FIXME|HACK|XXX)\b", re.IGNORECASE)
+TODO_RE = re.compile(r"(?:#|//|/\*)\s*(TODO|FIXME|HACK|XXX)\b", re.IGNORECASE)  # noqa: 91
 HARDCODED_PATH_RE = re.compile(r"^[A-Za-z]:[\\/]|^/(home|Users)/")
 HEX_COLOR_RE = re.compile(r"^#(?:[0-9A-Fa-f]{3}|[0-9A-Fa-f]{6}|[0-9A-Fa-f]{8})$")
 
@@ -426,7 +449,7 @@ def scan_text_line(path: Path, lineno: int, line: str, violations: list[tuple[Pa
         return
 
     # Linter self-hosting: do not flag the linter's own pattern definitions
-    if path.name == "claudemd_linter.py" and lineno <= 365:
+    if path.name == "claudemd_linter.py" and lineno <= 385:
         return
 
     # Spell checker dictionary definitions legitimately define typo mappings
@@ -550,7 +573,7 @@ def scan_comment_blocks(path: Path, lines: list[str], violations: list[tuple[Pat
             i += 1
 
 
-# Category B: Duplicate code detection
+# Section 2: Duplicate code detection
 def extract_function_bodies(source: str) -> dict:
     try:
         tree = ast.parse(source)
@@ -590,7 +613,7 @@ def _has_noqa(text: str, code: int) -> bool:
     return code in {int(code_val) for code_val in re.findall(r"\d+", codes_str)}
 
 
-# Category C: Unused code detection
+# Section 3: Unused code detection
 def detect_unused_code(files: list[Path], violations: list[tuple[Path, int, int]]) -> None:
     try:
         import vulture  # noqa: 22
@@ -627,7 +650,7 @@ def _check_noqa_in_file(fpath: Path, lineno: int, code: int) -> bool:
     return False
 
 
-# Category C2: Whole-repo import-graph checks (dead files, circular imports)
+# Section 4: Whole-repo import-graph checks (dead files, circular imports)
 def _module_dotted_path(fpath: Path, root: Path) -> str:
     try:
         rel = fpath.relative_to(root)
@@ -750,7 +773,8 @@ def _check_ast_import_from(node: ast.ImportFrom, path: Path, line: str, lines: l
 def _check_ast_except_handler(node: ast.ExceptHandler, path: Path, line: str, lines: list[str], violations: list[tuple[Path, int, int]]) -> None:
     if node.type is None and not suppressed(line, 9):
         violations.append((path, node.lineno, 9))
-    if len(node.body) == 1 and isinstance(node.body[0], ast.Pass) and not suppressed(line, 10):
+    pass_line = lines[node.body[0].lineno - 1] if node.body and node.body[0].lineno - 1 < len(lines) else ""
+    if len(node.body) == 1 and isinstance(node.body[0], ast.Pass) and not suppressed(line, 10) and not suppressed(pass_line, 10):
         violations.append((path, node.lineno, 10))
     caught_name = node.type.id if isinstance(node.type, ast.Name) else None
     for stmt in node.body:
@@ -762,7 +786,8 @@ def _check_ast_except_handler(node: ast.ExceptHandler, path: Path, line: str, li
                     violations.append((path, stmt.lineno, 27))
 
 def _check_ast_function_def(node: ast.FunctionDef, path: Path, line: str, lines: list[str], violations: list[tuple[Path, int, int]]) -> None:
-    if len(node.body) == 1 and isinstance(node.body[0], ast.Pass) and not suppressed(line, 10):
+    pass_line = lines[node.body[0].lineno - 1] if node.body and node.body[0].lineno - 1 < len(lines) else ""
+    if len(node.body) == 1 and isinstance(node.body[0], ast.Pass) and not suppressed(line, 10) and not suppressed(pass_line, 10):
         violations.append((path, node.lineno, 10))
     missing = any(param_arg.annotation is None for param_arg in node.args.args if param_arg.arg != "self")
     if node.returns is None:
@@ -828,10 +853,26 @@ def _check_ast_compare(node: ast.Compare, path: Path, line: str, lines: list[str
             if not suppressed(line, 15):
                 violations.append((path, node.lineno, 15))
 
-def _check_ast_name(node: ast.Name, path: Path, line: str, lines: list[str], violations: list[tuple[Path, int, int]]) -> None:
+def _check_ast_name(
+    node: ast.Name,
+    path: Path,
+    line: str,
+    lines: list[str],
+    violations: list[tuple[Path, int, int]],
+    custom_cfg: CustomLinterConfig | None = None,
+) -> None:
     if isinstance(node.ctx, ast.Store):
         var_name = node.id
-        if not (var_name.startswith("__") and var_name.endswith("__")) and var_name not in ALLOWED_SHORT_VARS:
+        allowed_extra = custom_cfg.allowed_vars if custom_cfg else set()
+        banned_extra = custom_cfg.banned_vars if custom_cfg else set()
+        if var_name.lower() in banned_extra:
+            if not suppressed(line, 38):
+                violations.append((path, node.lineno, 38))
+        elif (
+            not (var_name.startswith("__") and var_name.endswith("__"))
+            and var_name not in ALLOWED_SHORT_VARS
+            and var_name not in allowed_extra
+        ):
             if len(var_name) == 1 or var_name.lower() in VAGUE_VAR_NAMES:
                 if not suppressed(line, 38):
                     violations.append((path, node.lineno, 38))
@@ -886,8 +927,14 @@ def _check_ast_dict(node: ast.Dict, path: Path, line: str, lines: list[str], vio
                     violations.append((path, key.lineno, 43))
             seen_keys.add(key.value)
 
-# Category D: Python AST checks
-def scan_python_ast(path: Path, source: str, lines: list[str], violations: list[tuple[Path, int, int]]) -> None:
+# Section 5: Python AST checks
+def scan_python_ast(
+    path: Path,
+    source: str,
+    lines: list[str],
+    violations: list[tuple[Path, int, int]],
+    custom_cfg: CustomLinterConfig | None = None,
+) -> None:
     try:
         tree = ast.parse(source)
     except SyntaxError:
@@ -926,7 +973,10 @@ def scan_python_ast(path: Path, source: str, lines: list[str], violations: list[
         elif isinstance(node, ast.Compare):
             _check_ast_compare(node, path, line, lines, violations)
         elif isinstance(node, ast.Name):
-            _check_ast_name(node, path, line, lines, violations)
+            _check_ast_name(node, path, line, lines, violations, custom_cfg=custom_cfg)
+        elif isinstance(node, ast.arg) and custom_cfg is not None and custom_cfg.banned_vars:
+            if node.arg.lower() in custom_cfg.banned_vars and not suppressed(line, 38):
+                violations.append((path, node.lineno, 38))
         elif isinstance(node, ast.Call):
             _check_ast_call(node, path, line, lines, violations)
         elif isinstance(node, ast.Constant):
@@ -1083,6 +1133,19 @@ def _is_docstring_or_dunder(node: ast.AST) -> bool:
     return False
 
 
+def scan_silent_fallback_passthrough(path: Path, lines: list[str], violations: list[tuple[Path, int, int]]) -> None:
+    path_lower = str(path).lower()
+    if not any(k in path_lower for k in ("domain", "service", "scaling", "transform", "convert")):
+        return
+    for idx, line in enumerate(lines, 1):
+        clean = line.split("//")[0].split("#")[0].strip()
+        if re.search(r"return\s*\{\s*formattedText:\s*\w+\.raw\s*\}|return\s+\w+\.raw\b", clean):
+            prev_context = "\n".join(lines[max(0, idx - 12):idx])
+            if re.search(r"!\w+\.quantity|!\w+\.unit", prev_context):
+                if "parse" not in prev_context:
+                    violations.append((path, idx, 82))
+
+
 # Per-file scanner worker (used by both sequential and parallel runs)
 def scan_single_file(path_str: str) -> tuple[str, list[tuple[str, int, int]], dict[str, tuple[str, int, str]]]:
     path = Path(path_str)
@@ -1095,13 +1158,17 @@ def scan_single_file(path_str: str) -> tuple[str, list[tuple[str, int, int]], di
         return path_str, violations, funcs
 
     lines = source.splitlines()
+    custom_cfg = load_custom_linter_config(file_path=path)
 
     for i, line in enumerate(lines, 1):
         scan_text_line(path, i, line, violations)
 
+    scan_silent_fallback_passthrough(path, lines, violations)
+    violations.extend(scan_custom_rules_for_file(path, source, lines, custom_cfg, suppressed))
+
     if path.suffix == ".py":
         scan_comment_blocks(path, lines, violations)
-        scan_python_ast(path, source, lines, violations)
+        scan_python_ast(path, source, lines, violations, custom_cfg=custom_cfg)
         scan_os_specific_code(path, source, lines, violations)
         scan_dialog_label_selectability(path, source, lines, violations)
         scan_missing_tooltips(path, source, lines, violations)
@@ -1111,16 +1178,32 @@ def scan_single_file(path_str: str) -> tuple[str, list[tuple[str, int, int]], di
     elif path.suffix in (".js", ".jsx", ".ts", ".tsx", ".rs", ".go", ".c", ".cpp", ".h", ".sh", ".kt", ".dart", ".swift", ".cs"):
         scan_comment_blocks(path, lines, violations)
 
+    seen_sites: set[tuple[str, int, int]] = set()
+    site_methods = (
+        "tooltip_literal_sites",
+        "layout_hazards",
+        "raw_unicode_escape_sites",
+        "unguarded_mutation_sites",
+        "unbounded_collection_sites",
+        "unreset_control_sites",
+        "micro_typography_sites",
+        "svg_chart_sites",
+        "ambiguous_unit_sites",
+    )
     for ad in get_all_adapters():
         if path.suffix in ad.extensions:
-            for site in ad.tooltip_literal_sites(path, source):
-                line_text = lines[site.line - 1] if site.line - 1 < len(lines) else ""
-                if not suppressed(line_text, site.code):
-                    violations.append((site.file, site.line, site.code))
-            for site in ad.layout_hazards(path, source):
-                line_text = lines[site.line - 1] if site.line - 1 < len(lines) else ""
-                if not suppressed(line_text, site.code):
-                    violations.append((site.file, site.line, site.code))
+            for method_name in site_methods:
+                fn = getattr(ad, method_name, None)
+                if fn is None:
+                    continue
+                for site in fn(path, source):
+                    key = (str(site.file), site.line, site.code)
+                    if key in seen_sites:
+                        continue
+                    seen_sites.add(key)
+                    line_text = lines[site.line - 1] if site.line - 1 < len(lines) else ""
+                    if not suppressed(line_text, site.code):
+                        violations.append((site.file, site.line, site.code))
 
     serializable_violations = [(str(v[0]), v[1], v[2]) for v in violations]
     return path_str, serializable_violations, funcs
@@ -1133,19 +1216,39 @@ def scan_file(path: Path, violations: list[tuple[Path, int, int]]) -> None:
 
 
 # Caching layer (.lint_cache.json)
+def get_linter_hash() -> str:
+    hasher = hashlib.md5()
+    linter_file = Path(__file__).resolve()
+    adapter_dir = linter_file.parent / "ui_adapters"
+    source_files = [linter_file, linter_file.parent / "custom_linter.py"]
+    if adapter_dir.is_dir():
+        source_files.extend(sorted(adapter_dir.glob("*.py")))
+    source_files.extend(load_custom_linter_config().loaded_files)
+    for source_file in source_files:
+        try:
+            hasher.update(source_file.read_bytes())
+        except OSError:
+            continue
+    return hasher.hexdigest()
+
+
 def load_cache() -> dict:
     if CACHE_PATH.exists():
         try:
-            return json.loads(CACHE_PATH.read_text(encoding="utf-8"))
-        except Exception:
+            data = json.loads(CACHE_PATH.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
             return {}
+        if not isinstance(data, dict) or data.get("_linter_hash") != get_linter_hash():
+            return {}
+        return data
     return {}
 
 
 def save_cache(cache: dict) -> None:
     try:
+        cache["_linter_hash"] = get_linter_hash()
         CACHE_PATH.write_text(json.dumps(cache, indent=2), encoding="utf-8")
-    except Exception:
+    except OSError:
         return
 
 
@@ -1159,9 +1262,11 @@ def get_file_hash(path: Path) -> str:
 def is_scannable_file(fpath: Path) -> bool:
     if fpath.name.startswith("lint_report") and fpath.suffix == ".txt":
         return False
-    if fpath.name in ("INSTRUCTIONS_TEMPLATE.md", "ENGINEERING_RULES.md"):
+    if fpath.name in ("INSTRUCTIONS_TEMPLATE.md", "ENGINEERING_RULES.md", CUSTOM_CONFIG_FILENAME, CUSTOM_EXAMPLE_FILENAME):
         return False
-    return fpath.suffix in SUPPORTED_EXTENSIONS and EXCLUDED_DIRS.isdisjoint(fpath.parts)
+    if not (fpath.suffix in SUPPORTED_EXTENSIONS and EXCLUDED_DIRS.isdisjoint(fpath.parts)):
+        return False
+    return not is_ignored_by_custom_config(fpath, load_custom_linter_config(file_path=fpath))
 
 
 # File collection and Git Diff Scoping
@@ -1175,8 +1280,8 @@ def collect_git_diff_files(target: str, staged_only: bool = False) -> list[Path]
         changed_paths = {line.strip().strip('"') for line in res.stdout.splitlines() if line.strip()}
 
         if not staged_only:
-            # Include untracked and unstaged files from porcelain status
-            status_res = subprocess.run(["git", "status", "--porcelain"], cwd=cwd, capture_output=True, text=True, check=False)
+            # Expand untracked directories so new source trees are not skipped
+            status_res = subprocess.run(["git", "status", "--porcelain", "-uall"], cwd=cwd, capture_output=True, text=True, check=False)
             for raw_line in status_res.stdout.splitlines():
                 if len(raw_line) > 3:
                     path_part = raw_line[3:].strip()
@@ -1189,14 +1294,49 @@ def collect_git_diff_files(target: str, staged_only: bool = False) -> list[Path]
         git_root_res = subprocess.run(["git", "rev-parse", "--show-toplevel"], cwd=cwd, capture_output=True, text=True, check=False)
         git_root = Path(git_root_res.stdout.strip()) if git_root_res.returncode == 0 else p
 
-        files = []
+        files: list[Path] = []
+        seen_paths: set[Path] = set()
         for rel in changed_paths:
             fpath = git_root / rel
-            if fpath.is_file() and is_scannable_file(fpath):
+            if fpath.is_file() and is_scannable_file(fpath) and fpath not in seen_paths:
                 files.append(fpath)
+                seen_paths.add(fpath)
+            elif fpath.is_dir():
+                for child in collect_files(str(fpath)):
+                    if child not in seen_paths:
+                        files.append(child)
+                        seen_paths.add(child)
         return files
     except Exception:
         return []
+
+
+def detect_repo_hygiene_issues(root: Path, violations: list[tuple[Path, int, int]]) -> None:
+    wf_dir = root / ".github" / "workflows"
+    if wf_dir.is_dir():
+        for wf_file in wf_dir.glob("*.yml"):
+            try:
+                content = wf_file.read_text(encoding="utf-8", errors="ignore")
+            except OSError:
+                continue
+            if "release" in wf_file.name.lower() or "softprops/action-gh-release" in content or "gh release" in content:
+                has_tags = "tags:" in content
+                has_branch_or_pr = ("branches:" in content) or ("pull_request:" in content)
+                if has_tags and not has_branch_or_pr and not _check_noqa_in_file(wf_file, 1, 89):
+                    violations.append((wf_file, 1, 89))
+                latest_match = re.search(r"tag_name:.*['\"]latest['\"]", content)
+                if latest_match:
+                    lineno = content[:latest_match.start()].count("\n") + 1
+                    if not _check_noqa_in_file(wf_file, lineno, 89):
+                        violations.append((wf_file, lineno, 89))
+    if (root / "src-tauri" / "Cargo.toml").is_file():
+        exempt_py = {"setup.py", "conftest.py", "manage.py"}
+        for py_file in root.glob("*.py"):
+            if py_file.name not in exempt_py and not _check_noqa_in_file(py_file, 1, 89):
+                violations.append((py_file, 1, 89))
+    for android_file, lineno, _ in detect_android_release_issues(root):
+        if not _check_noqa_in_file(android_file, lineno, 89):
+            violations.append((android_file, lineno, 89))
 
 
 def collect_files(target: str) -> list[Path]:
@@ -1219,7 +1359,7 @@ def audit_suppressions(target: str) -> str:
         ("pragma: no cover", re.compile(r"#\s*pragma:\s*no\s*cover", re.IGNORECASE)),
         ("pylint: disable", re.compile(r"#\s*pylint:\s*disable", re.IGNORECASE)),
         ("nosec", re.compile(r"#\s*nosec\b", re.IGNORECASE)),
-        ("TODO/FIXME/HACK/XXX", TODO_RE),
+        ("TODO/FIXME/HACK/XXX", TODO_RE),  # noqa: 91
     ]
 
     for f in files:
@@ -1296,10 +1436,42 @@ def calc_report_path(root: Path, custom_path: Path | None = None) -> Path:
     return Path(__file__).parent / f"lint_report_{safe_name}.txt"
 
 
+def print_linter_usage() -> None:
+    print("Usage: ailint [target] [options...]\n")
+    print("79-rule AST, multi-framework UI, and code quality linter.\n")
+    print("Options:")
+    print("  --level LEVEL        Verification level: standard, strict (default), full")
+    print("  --diff               Lint only modified and untracked git files (default in git repos)")
+    print("  --staged             Lint only git staged files")
+    print("  --full, --all        Lint all scannable files in target directory")
+    print("  --skip CODES         Comma-separated rule codes to skip (e.g. 38,40)")
+    print("  --only CODES         Comma-separated rule codes to enforce only")
+    print("  --noqa               Audit and print existing noqa suppressions")
+    print("  --no-cache           Bypass incremental caching")
+    print("  --no-parallel        Disable parallel worker pool")
+    print("  --no-ruff            Disable external ruff linter integration")
+    print("  --report PATH        Custom output path for lint report text file")
+    print("  --ui-evidence PATH   Custom path to ui_evidence.json")
+    print("  -h, --help           Show this help message and exit")
+
+
 def parse_cli_args(raw_args: list[str]) -> tuple[str, str, set[int], set[int], dict]:
-    level = "strict"
-    skip_codes: set[int] = set()
-    only_codes: set[int] = set()
+    if any(arg in ("-h", "--help", "help") for arg in raw_args):
+        print_linter_usage()
+        sys.exit(0)
+
+    target = "."
+    for item in raw_args:
+        if not item.startswith("--"):
+            target = item
+            break
+
+    cfg = load_tools_config(target)
+    level = cfg.linter_level or "strict"
+    skip_codes: set[int] = set(cfg.linter_skip)
+    only_codes: set[int] = set(cfg.linter_only)
+    evidence_override = Path(cfg.linter_ui_evidence) if cfg.linter_ui_evidence else None
+
     flags = {
         "noqa": False,
         "diff": False,
@@ -1309,9 +1481,8 @@ def parse_cli_args(raw_args: list[str]) -> tuple[str, str, set[int], set[int], d
         "no_parallel": False,
         "no_ruff": False,
         "report": None,
-        "ui_evidence": None,
+        "ui_evidence": evidence_override,
     }
-    target = "."
 
     i = 0
     target_set = False
@@ -1380,7 +1551,7 @@ def parse_cli_args(raw_args: list[str]) -> tuple[str, str, set[int], set[int], d
 
 
 # Driver and CLI
-def main() -> None:
+def main() -> int:
     raw_args = sys.argv[1:]
     target, level, skip_codes, only_codes, flags = parse_cli_args(raw_args)
 
@@ -1392,145 +1563,171 @@ def main() -> None:
         report = audit_suppressions(target)
         print(report)  # noqa: 25
         report_file.write_text(report, encoding="utf-8")
-        return
+        return 0
 
-    active_codes = set(LEVEL_RULES.get(level, LEVEL_RULES["strict"]))
-    if only_codes:
-        active_codes = set(only_codes)
-    if skip_codes:
-        active_codes = active_codes - skip_codes
+    had_target_env = "AI_DEV_TOOLS_TARGET_ROOT" in os.environ
+    prev_target_env = os.environ.get("AI_DEV_TOOLS_TARGET_ROOT")
+    os.environ["AI_DEV_TOOLS_TARGET_ROOT"] = str(root)
+    try:
+        custom_cfg = load_custom_linter_config(target_root=root)
 
-    if p.is_file():
-        files = [p] if p.suffix in SUPPORTED_EXTENSIONS else []
-    elif flags["full"]:
-        files = collect_files(target)
-    elif flags["diff"] or flags["staged"]:
-        files = collect_git_diff_files(target, staged_only=flags["staged"])
-        print(f"Git diff scoped: Scanning {len(files)} changed file(s).")  # noqa: 25
-    else:
-        # Default: git diff scoped if inside git repo; otherwise scan target
-        if is_git_repository(root):
-            files = collect_git_diff_files(target, staged_only=False)
-            if files:
-                print(f"Git diff scoped: Scanning {len(files)} changed file(s).")  # noqa: 25
-            else:
-                print("No uncommitted changes detected. Git diff clean (0 changed files). Pass --full for a whole-repo audit.")  # noqa: 25
-        else:
+        active_codes = set(LEVEL_RULES.get(level, LEVEL_RULES["strict"]))
+        if only_codes:
+            active_codes = set(only_codes)
+        if skip_codes:
+            active_codes = active_codes - skip_codes
+
+        if p.is_file():
+            files = [p] if p.suffix in SUPPORTED_EXTENSIONS else []
+        elif flags["full"]:
             files = collect_files(target)
-
-    if not files:
-        if report_file.is_file():
-            try:
-                report_file.unlink()
-            except OSError:
-                return
-        old_report = Path(__file__).parent / "lint_report.txt"
-        if old_report.is_file():
-            try:
-                old_report.unlink()
-            except OSError:
-                return
-        print("None. Lint clean.")  # noqa: 25
-        return
-
-    cache = {} if flags["no_cache"] else load_cache()
-    files_to_scan = []
-    violations = []
-    all_files_funcs = {}
-
-    for f in files:
-        f_str = str(f)
-        f_hash = get_file_hash(f)
-        cached_entry = cache.get(f_str)
-        if cached_entry and cached_entry.get("hash") == f_hash:
-            for v in cached_entry.get("violations", []):
-                violations.append((Path(v[0]), v[1], v[2]))
-            if f.suffix == ".py" and "funcs" in cached_entry:
-                all_files_funcs[f] = cached_entry["funcs"]
+        elif flags["diff"] or flags["staged"]:
+            files = collect_git_diff_files(target, staged_only=flags["staged"])
+            print(f"Git diff scoped: Scanning {len(files)} changed file(s).")  # noqa: 25
         else:
-            files_to_scan.append((f, f_hash))
+            # Default: git diff scoped if inside git repo; otherwise scan target
+            if is_git_repository(root):
+                files = collect_git_diff_files(target, staged_only=False)
+                if files:
+                    print(f"Git diff scoped: Scanning {len(files)} changed file(s).")  # noqa: 25
+                else:
+                    print("No uncommitted changes detected. Git diff clean (0 changed files). Pass --full for a whole-repo audit.")  # noqa: 25
+            else:
+                files = collect_files(target)
 
-    if files_to_scan:
-        paths_to_scan_str = [str(f[0]) for f in files_to_scan]
+        if not files:
+            if report_file.is_file():
+                try:
+                    report_file.unlink()
+                except OSError:
+                    return 0
+            old_report = Path(__file__).parent / "lint_report.txt"
+            if old_report.is_file():
+                try:
+                    old_report.unlink()
+                except OSError:
+                    return 0
+            print("None. Lint clean.")  # noqa: 25
+            return 0
 
-        safe_workers = min(os.cpu_count() or 1, 4)
-        if len(paths_to_scan_str) > 15 and not flags["no_parallel"] and safe_workers > 1:
-            with Pool(processes=safe_workers) as pool:
-                scan_results = pool.map(scan_single_file, paths_to_scan_str)
+        cache = {} if flags["no_cache"] else load_cache()
+        files_to_scan = []
+        violations = []
+        all_files_funcs = {}
+
+        for f in files:
+            f_str = str(f)
+            f_hash = get_file_hash(f)
+            cached_entry = cache.get(f_str)
+            if cached_entry and cached_entry.get("hash") == f_hash:
+                for v in cached_entry.get("violations", []):
+                    violations.append((Path(v[0]), v[1], v[2]))
+                if f.suffix == ".py" and "funcs" in cached_entry:
+                    all_files_funcs[f] = cached_entry["funcs"]
+            else:
+                files_to_scan.append((f, f_hash))
+
+        if files_to_scan:
+            paths_to_scan_str = [str(f[0]) for f in files_to_scan]
+
+            safe_workers = min(os.cpu_count() or 1, 4)
+            if len(paths_to_scan_str) > 15 and not flags["no_parallel"] and safe_workers > 1:
+                with Pool(processes=safe_workers) as pool:
+                    scan_results = pool.map(scan_single_file, paths_to_scan_str)
+            else:
+                scan_results = [scan_single_file(p_str) for p_str in paths_to_scan_str]
+
+            hash_lookup = {str(f[0]): f[1] for f in files_to_scan}
+
+            for path_str, file_violations, funcs in scan_results:
+                fpath = Path(path_str)
+                for v in file_violations:
+                    violations.append((Path(v[0]), v[1], v[2]))
+                if funcs:
+                    all_files_funcs[fpath] = funcs
+
+                cache[path_str] = {
+                    "hash": hash_lookup.get(path_str, ""),
+                    "violations": file_violations,
+                    "funcs": funcs,
+                }
+
+            save_cache(cache)
+
+        if 20 in active_codes:
+            detect_duplicate_code(all_files_funcs, violations)
+        if 21 in active_codes:
+            detect_unused_code(files, violations)
+        if p.is_dir() and not (flags["diff"] or flags["staged"]) and flags["full"] and any(rule_code in active_codes for rule_code in (29, 30)):
+            detect_module_graph_issues(files, root, violations)
+        if 40 in active_codes and not flags["no_ruff"]:
+            ruff_violations = run_standard_linter(root)
+            violations.extend(ruff_violations)
+
+        ui_active_codes = {c for c in active_codes if c in range(46, 91)}
+        if ui_active_codes:
+            ui_cfg = load_ui_config(root)
+            ui_manifest = build_manifest(root, ui_cfg, files=files)
+            if ui_manifest.controls or ui_manifest.screens:
+                ui_static = evaluate_static_rules(root, ui_manifest, ui_cfg, files=files)
+                for sv in ui_static:
+                    if sv[2] in active_codes:
+                        violations.append(sv)
+                ev_path = flags["ui_evidence"] if flags.get("ui_evidence") else (root / ui_cfg.evidence_path)
+                ev_obj = load_ui_evidence(ev_path, ui_manifest)
+                ui_ev = evaluate_evidence_rules(root, ui_manifest, ev_obj, ui_cfg)
+                for ev in ui_ev:
+                    if ev[2] in active_codes:
+                        violations.append(ev)
+            if 87 in active_codes or 88 in active_codes:
+                for ad in get_all_adapters():
+                    if 87 in active_codes and hasattr(ad, "stale_bundle_sites"):
+                        for sv in getattr(ad, "stale_bundle_sites")(root):
+                            if not _check_noqa_in_file(sv.file, sv.line, sv.code):
+                                violations.append((sv.file, sv.line, sv.code))
+                    if 88 in active_codes and hasattr(ad, "desktop_lifecycle_sites"):
+                        for sv in getattr(ad, "desktop_lifecycle_sites")(root):
+                            if not _check_noqa_in_file(sv.file, sv.line, sv.code):
+                                violations.append((sv.file, sv.line, sv.code))
+        if 89 in active_codes:
+            detect_repo_hygiene_issues(root, violations)
+
+        violations = filter_overridden_violations(violations, custom_cfg, root=root)
+        violations = [v for v in violations if v[2] in active_codes]
+
+        if not violations:
+            if report_file.is_file():
+                try:
+                    report_file.unlink()
+                except OSError:
+                    return 0
+            old_report = Path(__file__).parent / "lint_report.txt"
+            if old_report.is_file():
+                try:
+                    old_report.unlink()
+                except OSError:
+                    return 0
+            print("None. Lint clean.")  # noqa: 25
+            return 0
         else:
-            scan_results = [scan_single_file(p_str) for p_str in paths_to_scan_str]
+            codes_present = sorted({v[2] for v in violations})
+            out_lines = ["LEGEND"]
+            for code in codes_present:
+                out_lines.append(f"{code} = {LEGEND[code]}")
+            out_lines.append("")
+            out_lines.append("VIOLATIONS")
+            for path, lineno, code in sorted(violations, key=lambda v: (str(v[0]), v[1])):
+                out_lines.append(f"{path}:{lineno} | code={code}")
 
-        hash_lookup = {str(f[0]): f[1] for f in files_to_scan}
-
-        for path_str, file_violations, funcs in scan_results:
-            fpath = Path(path_str)
-            for v in file_violations:
-                violations.append((Path(v[0]), v[1], v[2]))
-            if funcs:
-                all_files_funcs[fpath] = funcs
-
-            cache[path_str] = {
-                "hash": hash_lookup.get(path_str, ""),
-                "violations": file_violations,
-                "funcs": funcs,
-            }
-
-        save_cache(cache)
-
-    if 20 in active_codes:
-        detect_duplicate_code(all_files_funcs, violations)
-    if 21 in active_codes:
-        detect_unused_code(files, violations)
-    if p.is_dir() and not (flags["diff"] or flags["staged"]) and flags["full"] and any(rule_code in active_codes for rule_code in (29, 30)):
-        detect_module_graph_issues(files, root, violations)
-    if 40 in active_codes and not flags["no_ruff"]:
-        ruff_violations = run_standard_linter(root)
-        violations.extend(ruff_violations)
-
-    ui_active_codes = {c for c in active_codes if c in range(46, 80)}
-    if ui_active_codes:
-        ui_cfg = load_ui_config(root)
-        ui_manifest = build_manifest(root, ui_cfg, files=files)
-        if ui_manifest.controls or ui_manifest.screens:
-            ui_static = evaluate_static_rules(root, ui_manifest, ui_cfg, files=files)
-            for sv in ui_static:
-                if sv[2] in active_codes:
-                    violations.append(sv)
-            ev_path = flags["ui_evidence"] if flags.get("ui_evidence") else (root / ui_cfg.evidence_path)
-            ev_obj = load_ui_evidence(ev_path, ui_manifest)
-            ui_ev = evaluate_evidence_rules(root, ui_manifest, ev_obj, ui_cfg)
-            for ev in ui_ev:
-                if ev[2] in active_codes:
-                    violations.append(ev)
-
-    violations = [v for v in violations if v[2] in active_codes]
-
-    if not violations:
-        if report_file.is_file():
-            try:
-                report_file.unlink()
-            except OSError:
-                return
-        old_report = Path(__file__).parent / "lint_report.txt"
-        if old_report.is_file():
-            try:
-                old_report.unlink()
-            except OSError:
-                return
-        print("None. Lint clean.")  # noqa: 25
-    else:
-        codes_present = sorted({v[2] for v in violations})
-        out_lines = ["LEGEND"]
-        for code in codes_present:
-            out_lines.append(f"{code} = {LEGEND[code]}")
-        out_lines.append("")
-        out_lines.append("VIOLATIONS")
-        for path, lineno, code in sorted(violations, key=lambda v: (str(v[0]), v[1])):
-            out_lines.append(f"{path}:{lineno} | code={code}")
-
-        report_file.write_text("\n".join(out_lines), encoding="utf-8")
-        print(f"Report written to {report_file}")  # noqa: 25
+            report_file.write_text("\n".join(out_lines), encoding="utf-8")
+            print(f"Report written to {report_file}")  # noqa: 25
+            return 1
+    finally:
+        if not had_target_env:
+            os.environ.pop("AI_DEV_TOOLS_TARGET_ROOT", None)
+        elif prev_target_env is not None:
+            os.environ["AI_DEV_TOOLS_TARGET_ROOT"] = prev_target_env
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())

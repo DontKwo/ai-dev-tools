@@ -58,5 +58,5 @@ Assert invariants after every single test action:
 
 - Python: Standard `unittest` with `subTest()` iterations and seeded `random.Random(seed)` fixtures. Use `Hypothesis` only when already a declared dependency.
 - Web: Playwright test runner combined with `fast-check` generators.
-- Scaffolding: When `scripts/scaffold_test_matrix.py` exists, execute it to generate harness templates.
+- Scaffolding: Generate harness templates and property sequences using table-driven test cases.
 - Mutation Testing: Run mutation tools (such as `mutmut` or `stryker`) where available to verify test sensitivity.

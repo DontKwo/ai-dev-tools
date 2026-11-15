@@ -1,0 +1,5 @@
+interface:
+  display_name: "Ask AI Tools"
+  short_description: "Workflow router and skill recommender for choosing the right ai-dev-tools wor..."
+policy:
+  allow_implicit_invocation: false

@@ -15,7 +15,7 @@ Clean up zombie code, augment type hints, verify variable clarity, and correct s
 Detect and remove unused imports safely using AST analysis:
 
 ```bash
-uv run --no-project python scripts/prune_dead_code.py [target]
+aitools prune [target]
 ```
 
 Options:
@@ -26,7 +26,7 @@ Options:
 Analyze function signatures and apply type annotations:
 
 ```bash
-uv run --no-project python scripts/boost_types.py [target]
+aitools boost [target]
 ```
 
 Options:
@@ -37,7 +37,7 @@ Options:
 Audit source code for single-letter and uninformative identifiers (Rule 38):
 
 ```bash
-uv run --no-project python scripts/check_variable_names.py [target]
+aitools vars [target]
 ```
 
 ### 4. Scan Code for Spelling Typos
@@ -45,12 +45,12 @@ uv run --no-project python scripts/check_variable_names.py [target]
 Find spelling errors in identifiers and comments (Rule 39):
 
 ```bash
-uv run --no-project python scripts/spell_checker.py [target]
+aitools spell [target]
 ```
 
 ## Verification
 
 After applying modifications:
 1. Run repository unit tests to confirm zero regressions.
-2. Run `uv run --no-project python scripts/claudemd_linter.py . --level strict` to confirm clean status.
+2. Run `aitools lint . --level strict` to confirm clean status.
 

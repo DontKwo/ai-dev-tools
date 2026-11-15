@@ -1,0 +1,5 @@
+interface:
+  display_name: "Setup AI Dev Tools"
+  short_description: "Interactive repository onboarding wizard for configuring linter_custom"
+policy:
+  allow_implicit_invocation: false

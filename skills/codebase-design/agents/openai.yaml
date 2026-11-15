@@ -1,0 +1,3 @@
+interface:
+  display_name: "Codebase Design"
+  short_description: "Evaluate module depth, interface simplicity, dependency categories, seams, an..."

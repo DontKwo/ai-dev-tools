@@ -6,7 +6,14 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch, MagicMock
 
-from scripts.doctor import check_installed_skills, inspect_mcp_config, check_git_tracking, check_python_version, check_ui_helpers
+from scripts.doctor import (
+    check_ci_workflows,
+    check_git_tracking,
+    check_installed_skills,
+    check_python_version,
+    check_ui_helpers,
+    inspect_mcp_config,
+)
 
 
 class TestDoctor(unittest.TestCase):
@@ -205,6 +212,72 @@ class TestDoctor(unittest.TestCase):
         self.assertIn("pyqt", helpers)
         self.assertIn("web", helpers)
         self.assertTrue(all(helpers.values()))
+
+    def test_check_ci_workflows_valid_release(self) -> None:
+        wf_dir = self.root / ".github" / "workflows"
+        wf_dir.mkdir(parents=True)
+        (self.root / "package.json").write_text('{"name":"app","version":"1.2.3"}', encoding="utf-8")
+        (self.root / "src-tauri").mkdir()
+        (wf_dir / "release.yml").write_text(
+            "on:\n  push:\n    branches: [main]\n  pull_request:\n    branches: [main]\n"
+            "files: App_1.2.3_x64-setup.exe App_1.2.3_x64_en-US.msi\n",
+            encoding="utf-8",
+        )
+        info = check_ci_workflows(self.root)
+        self.assertTrue(info["has_workflows"])
+        self.assertEqual(info["warnings"], [])
+        self.assertGreaterEqual(len(info["ok"]), 3)  # type: ignore[arg-type]
+
+    def test_check_ci_workflows_detects_mismatches_and_missing_triggers(self) -> None:
+        wf_dir = self.root / ".github" / "workflows"
+        wf_dir.mkdir(parents=True)
+        (self.root / "package.json").write_text('{"name":"app","version":"2.0.0"}', encoding="utf-8")
+        (wf_dir / "release.yml").write_text(
+            "on:\n  push:\n    tags: ['v*']\n"
+            "files: App_1.0.0_x64-setup.exe\n",
+            encoding="utf-8",
+        )
+        info = check_ci_workflows(self.root)
+        warnings_joined = "\n".join(info["warnings"])  # type: ignore[arg-type]
+        self.assertIn("pull_request:", warnings_joined)
+        self.assertIn(".msi", warnings_joined)
+        self.assertIn("1.0.0", warnings_joined)
+
+    def test_check_ci_workflows_warns_on_static_latest_tag(self) -> None:
+        wf_dir = self.root / ".github" / "workflows"
+        wf_dir.mkdir(parents=True)
+        (wf_dir / "release.yml").write_text(
+            "on:\n  push:\n    branches: [main]\n  pull_request:\n    branches: [main]\n"
+            "with:\n  tag_name: ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || 'latest' }}\n",
+            encoding="utf-8",
+        )
+        info = check_ci_workflows(self.root)
+        warnings_joined = "\n".join(info["warnings"])  # type: ignore[arg-type]
+        self.assertIn("static 'latest' tag_name", warnings_joined)
+
+    def test_check_ci_workflows_warns_on_android_debug_signing_and_cleartext(self) -> None:
+        wf_dir = self.root / ".github" / "workflows"
+        wf_dir.mkdir(parents=True)
+        (wf_dir / "release.yml").write_text(
+            "on:\n  push:\n    branches: [main]\n  pull_request:\n    branches: [main]\n"
+            "steps:\n  - run: gradle assembleRelease\n",
+            encoding="utf-8",
+        )
+        android_app = self.root / "android" / "app"
+        manifest_dir = android_app / "src" / "main"
+        manifest_dir.mkdir(parents=True)
+        (android_app / "build.gradle").write_text(
+            "android {\n  buildTypes {\n    release {\n      signingConfig signingConfigs.debug\n    }\n  }\n}\n",
+            encoding="utf-8",
+        )
+        (manifest_dir / "AndroidManifest.xml").write_text(
+            '<manifest><application android:usesCleartextTraffic="true" /></manifest>\n',
+            encoding="utf-8",
+        )
+        info = check_ci_workflows(self.root)
+        warnings_joined = "\n".join(info["warnings"])  # type: ignore[arg-type]
+        self.assertIn("signingConfigs.debug", warnings_joined)
+        self.assertIn("usesCleartextTraffic", warnings_joined)
 
 if __name__ == "__main__":
     unittest.main()

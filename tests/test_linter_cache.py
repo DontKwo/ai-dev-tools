@@ -63,6 +63,7 @@ class TestLinterCache(unittest.TestCase):
         expected_hash = claudemd_linter.get_file_hash(self.dummy_file)
         self.assertEqual(entry["hash"], expected_hash)
         self.assertIsInstance(entry["violations"], list)
+        self.assertEqual(cache_data.get("_linter_hash"), claudemd_linter.get_linter_hash())
 
     def test_cache_hit_skips_parsing(self) -> None:
         """Test that running the linter twice on unmodified file skips scan_single_file."""
@@ -110,6 +111,21 @@ class TestLinterCache(unittest.TestCase):
 
         # Second run with --no-cache should re-scan despite unmodified file
         with patch.object(sys, "argv", test_args_no_cache):
+            with patch("scripts.claudemd_linter.scan_single_file", wraps=claudemd_linter.scan_single_file) as mock_scan:
+                claudemd_linter.main()
+                mock_scan.assert_called_once_with(str(self.dummy_file))
+
+    def test_cache_invalidation_on_linter_hash_mismatch(self) -> None:
+        """Test that changing _linter_hash invalidates cached entries without source edits."""
+        test_args = ["claudemd_linter.py", str(self.dummy_file)]
+        with patch.object(sys, "argv", test_args):
+            claudemd_linter.main()
+
+        cache_data = json.loads(self.cache_path.read_text(encoding="utf-8"))
+        cache_data["_linter_hash"] = "outdated_linter_hash"
+        self.cache_path.write_text(json.dumps(cache_data), encoding="utf-8")
+
+        with patch.object(sys, "argv", test_args):
             with patch("scripts.claudemd_linter.scan_single_file", wraps=claudemd_linter.scan_single_file) as mock_scan:
                 claudemd_linter.main()
                 mock_scan.assert_called_once_with(str(self.dummy_file))

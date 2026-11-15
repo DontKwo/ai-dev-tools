@@ -1,0 +1,5 @@
+interface:
+  display_name: "Wayfinder"
+  short_description: "Navigate complex multi-session epics using a living decision DAG of small Res..."
+policy:
+  allow_implicit_invocation: false

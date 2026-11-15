@@ -14,6 +14,8 @@ from configure import (
     configure_mcp_servers,
     configure_skills,
     get_tool_definitions,
+    install_file,
+    remove_tool_targets,
 )
 
 
@@ -91,7 +93,7 @@ class TestConfigure(unittest.TestCase):
         import platform
         from scripts.utils import IS_WINDOWS
         if IS_WINDOWS:
-            claude_mcp_path_desktop = self.mock_home / "AppData" / "Roaming" / "Claude" / "claude_desktop_config.json"
+            claude_mcp_path_desktop = self.mock_home / "AppData" / "Roaming" / "Claude" / "claude_desktop_config.json"  # noqa: 91
         elif platform.system() == "Darwin":
             claude_mcp_path_desktop = self.mock_home / "Library" / "Application Support" / "Claude" / "claude_desktop_config.json"
         else:
@@ -176,6 +178,52 @@ class TestConfigure(unittest.TestCase):
         )
 
         self.assertFalse(target_dir.exists())
+
+    def test_install_file_appends_and_updates_idempotently(self) -> None:
+        claude_md = self.mock_ws / "CLAUDE.md"
+        claude_md.write_text("# User Project Rules\nKeep my rules.\n", encoding="utf-8")
+
+        install_file(claude_md, "Rule v1\nPath scripts/script.py", default_action="append")
+        first_text = claude_md.read_text(encoding="utf-8")
+        self.assertIn("# User Project Rules\nKeep my rules.", first_text)
+        self.assertIn("<!-- BEGIN AI-DEV-TOOLS -->", first_text)
+        self.assertIn("Rule v1", first_text)
+
+        install_file(claude_md, "Rule v2\nPath scripts/script.py", default_action="append")
+        second_text = claude_md.read_text(encoding="utf-8")
+        self.assertIn("# User Project Rules\nKeep my rules.", second_text)
+        self.assertEqual(second_text.count("<!-- BEGIN AI-DEV-TOOLS -->"), 1)
+        self.assertNotIn("Rule v1", second_text)
+        self.assertIn("Rule v2", second_text)
+
+    def test_install_file_preserves_mdc_frontmatter_and_remove_restores(self) -> None:
+        mdc_file = self.mock_ws / ".cursor" / "rules" / "developer-rules.mdc"
+        mdc_content = "---\ndescription: Rules\nglobs: *\nalwaysApply: true\n---\n\n# Body\nRule A"
+        install_file(mdc_file, mdc_content, default_action="append")
+
+        created = mdc_file.read_text(encoding="utf-8")
+        self.assertTrue(created.startswith("---\ndescription: Rules\nglobs: *\nalwaysApply: true\n---\n\n<!-- BEGIN AI-DEV-TOOLS -->"))
+        self.assertEqual(created.count("description: Rules"), 1)
+
+        claude_md = self.mock_ws / "CLAUDE.md"
+        claude_md.write_text("# Existing Header\n", encoding="utf-8")
+        install_file(claude_md, "# Managed Body\n", default_action="append")
+
+        with patch("configure.get_user_home", return_value=self.mock_home):
+            remove_tool_targets(["claude", "cursor"], "workspace", self.mock_ws)
+
+        self.assertFalse(mdc_file.exists())
+        self.assertTrue(claude_md.exists())
+        self.assertEqual(claude_md.read_text(encoding="utf-8"), "# Existing Header\n")
+
+    def test_install_file_non_tty_ask_defaults_to_append(self) -> None:
+        claude_md = self.mock_ws / "CLAUDE.md"
+        claude_md.write_text("# Existing Custom Rules\n", encoding="utf-8")
+        with patch("sys.stdin.isatty", return_value=False):
+            install_file(claude_md, "# Managed", default_action="ask")
+        text = claude_md.read_text(encoding="utf-8")
+        self.assertIn("# Existing Custom Rules", text)
+        self.assertIn("# Managed", text)
 
 
 if __name__ == "__main__":

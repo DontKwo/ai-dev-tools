@@ -1,0 +1,3 @@
+interface:
+  display_name: "UX Audit"
+  short_description: "Proactively audit user interfaces for responsiveness, contrast, accessibility..."

@@ -1,3 +1,4 @@
+import argparse
 import json
 import re
 import sys
@@ -150,6 +151,7 @@ def main(directory_path: str) -> int:
 
 if __name__ == "__main__":
     sys.path.insert(0, str(Path(__file__).resolve().parent))
-    target_path = sys.argv[1] if len(sys.argv) > 1 else "."
-    exit_code = main(target_path)
-    sys.exit(exit_code)
+    cli_parser = argparse.ArgumentParser(description="Check licenses of declared PyPI and npm dependencies.")
+    cli_parser.add_argument("directory", nargs="?", default=".", help="Project directory (default: .)")
+    cli_args = cli_parser.parse_args()
+    sys.exit(main(cli_args.directory))

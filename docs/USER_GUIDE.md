@@ -11,7 +11,7 @@ This guide provides a detailed manual on using each tool in `ai-dev-tools` to au
 
 ## Linting the Codebase
 
-- **45-Rule AST Linter (`ailint` / `scripts/claudemd_linter.py`)**:
+- **79-Rule AST & UI Linter (`ailint` / `scripts/claudemd_linter.py`)**:
   This is the core linting engine. By default, it runs over Git diffs.
   To run a full codebase audit:
   ```bash

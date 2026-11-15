@@ -1,0 +1,3 @@
+interface:
+  display_name: "Secret Sanitizer"
+  short_description: "Scan code, environment files, and diffs for exposed secrets, API keys, creden..."

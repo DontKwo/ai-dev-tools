@@ -48,7 +48,7 @@ Audit all suppressions across your codebase:
 ```bash
 uv run --no-project python scripts/claudemd_linter.py <file_or_directory> --noqa
 ```
-This scans and reports every instance of `# noqa`, `// noqa`, `# type: ignore`, `# pragma: no cover`, `# pylint: disable`, `# nosec`, and `TODO/FIXME/HACK/XXX` comments.
+This scans and reports every instance of `# noqa`, `// noqa`, `# type: ignore`, `# pragma: no cover`, `# pylint: disable`, `# nosec`, and `TODO/FIXME/HACK/XXX` comments. <!-- noqa: 91 -->
 
 ---
 
@@ -87,9 +87,9 @@ This scans and reports every instance of `# noqa`, `// noqa`, `# type: ignore`, 
 | **21** | Code Cleanliness | Unused function, method, or import (via `vulture`) | Remove dead code or suppress with `# noqa: 21`. |
 | **22** | Python AST | Import performed inside `try/except` block | All dependencies must be managed via project env/uv; move import to top level. |
 | **23** | UI / Qt | Tooltip text passed as an inline literal string | Import from master tooltip module instead of hardcoding strings inline. |
-| **24** | Code Cleanliness | `TODO` / `FIXME` / `HACK` / `XXX` comment left in code | Resolve the issue directly or track in issue tracker, then remove comment. |
+| **24** | Code Cleanliness | `TODO` / `FIXME` / `HACK` / `XXX` comment left in code | Resolve the issue directly or track in issue tracker, then remove comment. | <!-- noqa: 91 -->
 | **25** | Code Cleanliness | Leftover debug print/console call (`print()`, `console.log()`, `fmt.Println()`, `println!()`, `std::cout`) | Use standard logging (`logger.debug()`) or remove debug print. |
-| **26** | Portability | Hardcoded absolute filesystem path (e.g. `C:\...`, `/home/...`) | Use relative paths (`Path(__file__).parent`) or configuration constants. |
+| **26** | Portability | Hardcoded absolute filesystem path (e.g. `<drive>:\...`, `<posix-user-root>/...`) | Use relative paths (`Path(__file__).parent`) or configuration constants. |
 | **27** | Python AST | Exception caught and re-raised as a different type without `raise ... from` | Chain exceptions using `raise NewException(...) from err` or preserve original. |
 | **28** | UI / Styling | Hardcoded hex color literal outside the theme module | Reference central theme/palette tokens instead of literal `#RRGGBB`. |
 | **29** | Architecture | Dead file: file is never imported anywhere in scanned tree | Delete unused file or suppress with `# noqa: 29` on line 1. |
@@ -143,6 +143,18 @@ This scans and reports every instance of `# noqa`, `// noqa`, `# type: ignore`, 
 | **77** | UI / Testing | Locale and scale matrix not run | Execute UI audit matrix with pseudo-locale, right-to-left layout, and 1.5x font scale. |
 | **78** | UI / Architecture | Bridge mismatch | Synchronize exported host methods with invoked frontend bridge channels. |
 | **79** | UI / Copy | Label style inconsistency | Standardize action verbs and casing conventions across application controls. |
+| **80** | Web / JSX | Literal Unicode escape sequence rendered in JSX/HTML text (`\u00D7`) | Replace with the literal UTF-8 character (`×`) or a JS string expression. |
+| **81** | Web / Safety | Unguarded mutating click handler in view component | Gate handler behind explicit edit mode state or a `confirm()` / undo guard. |
+| **82** | Architecture | Silent fallback pass-through in domain transformer | Parse raw text fallback before returning unparsed strings silently. |
+| **83** | Web / UX | Unbounded option chip collection mapped to raw buttons | Replace raw chip button mapping with `<select>`, search filter, or pagination. |
+| **84** | Web / Styling | Unreset browser control styling or missing `color-scheme: dark` in dark CSS | Declare `color-scheme: dark` and button background reset (`background-color: transparent`). |
+| **85** | Web / A11y | Sub-legible micro-typography (`< 11px`) in UI or SVG | Increase font size to at least `12px` (`text-xs`) for readable UI labels. |
+| **86** | Web / SVG | Unchecked SVG `<text>` map without collision guard | Guard mapped SVG text elements against bounding-box overlap (`placedBoxes`, `.slice()`, `filter()`). |
+| **87** | Release / Bundle | Stale embedded frontend bundle or release binary | Rebuild `dist/` frontend assets and desktop binary after source changes. |
+| **88** | Desktop / Lifecycle | Local-server desktop entrypoint missing lifecycle handlers | Wire shutdown/heartbeat, console close handling, or `--self-test` startup checks. |
+| **89** | CI / Hygiene | Tag-only release workflow, static `'latest'` release tag, Android debug-signed or cleartext release, or superseded root scripts | Trigger releases on `push`/`pull_request`, publish unique semantic version tags, sign Android release builds properly with `usesCleartextTraffic="false"`, and remove obsolete scripts. |
+| **90** | Web / Units | Ambiguous mass unit (`tons`, `ton`, or bare `t`) in UI display | Display unambiguous units such as `lbs` or `kg`. |
+| **91** | Custom YAML | User-configured custom lint rule from `linter_custom.yaml` (`remove`, `replace`, `banned_imports`, or `file_guards`) | Remove or replace the flagged pattern, avoid the banned import, or satisfy the custom file guard rule. |
 
 ---
 
@@ -164,6 +176,7 @@ The linter scans code across multiple ecosystems:
 Applies guaranteed, low-risk, formulaic fixes:
 - Fixes Rule 15 (`== None` $\to$ `is None`, `!= None` $\to$ `is not None`)
 - Normalizes Rule 2 Unicode curly quotes, ellipsis, and non-breaking spaces
+- Replaces literal JSX/HTML Unicode escapes (Rule 80) with literal UTF-8 characters (`×`, `°`, `±`, `÷`, `≈`)
 - Safely strips Rule 3 emojis (with `--fix-emojis`)
 - **Safety Guarantee**: Rule 1 (em dash) is **never** automated and requires manual sentence rewriting.
 

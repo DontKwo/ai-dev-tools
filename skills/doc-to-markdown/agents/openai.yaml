@@ -1,0 +1,3 @@
+interface:
+  display_name: "Doc To Markdown"
+  short_description: "Convert documents including PDF, DOCX, XLSX, PPTX, CSV, HTML, and IPYNB into..."

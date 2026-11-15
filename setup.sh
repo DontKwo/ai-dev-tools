@@ -41,12 +41,12 @@ case "$mode_choice" in
     1)
         echo ""
         echo "[+] Configuring Claude Code..."
-        $PY_RUNNER "$CONFIGURATOR" --tools claude --scope global
+        $PY_RUNNER "$CONFIGURATOR" --tools claude --scope global --action append
         ;;
     2)
         echo ""
         echo "[+] Configuring ALL supported AI tools..."
-        $PY_RUNNER "$CONFIGURATOR" --tools all --scope global
+        $PY_RUNNER "$CONFIGURATOR" --tools all --scope global --action append
         ;;
     3)
         echo ""
@@ -55,7 +55,7 @@ case "$mode_choice" in
     *)
         echo ""
         echo "[+] Configuring ALL supported AI tools..."
-        $PY_RUNNER "$CONFIGURATOR" --tools all --scope global
+        $PY_RUNNER "$CONFIGURATOR" --tools all --scope global --action append
         ;;
 esac
 

@@ -16,16 +16,16 @@ import utils
 
 
 class TestUtils(unittest.TestCase):
-    @patch.dict(os.environ, {"USERPROFILE": "C:\\Users\\Test", "HOME": "/home/test"})
+    @patch.dict(os.environ, {"USERPROFILE": "/mock_win_profile", "HOME": "/mock_unix_home"})
     @patch("utils.IS_WINDOWS", True)
     def test_get_user_home_windows(self) -> None:
-        expected_path = Path("C:\\Users\\Test")
+        expected_path = Path("/mock_win_profile")
         self.assertEqual(utils.get_user_home(), expected_path)
 
-    @patch.dict(os.environ, {"USERPROFILE": "C:\\Users\\Test", "HOME": "/home/test"})
+    @patch.dict(os.environ, {"USERPROFILE": "/mock_win_profile", "HOME": "/mock_unix_home"})
     @patch("utils.IS_WINDOWS", False)
     def test_get_user_home_unix(self) -> None:
-        expected_path = Path("/home/test")
+        expected_path = Path("/mock_unix_home")
         self.assertEqual(utils.get_user_home(), expected_path)
 
     def test_format_command_path_with_spaces(self) -> None:

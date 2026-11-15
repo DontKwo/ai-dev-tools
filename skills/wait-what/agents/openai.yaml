@@ -1,0 +1,5 @@
+interface:
+  display_name: "Wait What"
+  short_description: "Re-pitch a dense technical explanation in ASD-STE100 Simplified Technical Eng..."
+policy:
+  allow_implicit_invocation: false

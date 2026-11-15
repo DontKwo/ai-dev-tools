@@ -63,8 +63,8 @@ class TestMCPServer(unittest.TestCase):
         self.assertIn("lint ok", res[0].get("text", ""))
 
     def test_tools_list_count(self) -> None:
-        """Verify all 26 tools are defined."""
-        self.assertEqual(len(TOOLS), 26)
+        """Verify all 28 tools are defined."""
+        self.assertEqual(len(TOOLS), 28)
         for t in TOOLS:
             self.assertIn("name", t)
             self.assertIn("description", t)
@@ -196,6 +196,25 @@ class TestMCPServer(unittest.TestCase):
         mock_run.return_value = "Evidence summary"
         res = handle_tool_call("ui_evidence_summary", {"target": "."})
         self.assertEqual(res, [{"type": "text", "text": "Evidence summary"}])
+
+    def test_manage_skills_registered(self) -> None:
+        tool_names = {t["name"] for t in TOOLS}
+        self.assertIn("manage_skills", tool_names)
+
+    @patch("mcp.server.run_command_tool")
+    def test_handle_manage_skills(self, mock_run: MagicMock) -> None:
+        mock_run.return_value = "Skills status OK"
+        res = handle_tool_call("manage_skills", {"action": "status"})
+        self.assertEqual(res, [{"type": "text", "text": "Skills status OK"}])
+
+    @patch("mcp.server.run_command_tool")
+    def test_handle_check_links(self, mock_run: MagicMock) -> None:
+        mock_run.return_value = "[OK] Link Checker: All links valid."
+        res = handle_tool_call("check_links", {"target": ".", "check_external": True})
+        self.assertEqual(res, [{"type": "text", "text": "[OK] Link Checker: All links valid."}])
+        mock_run.assert_called_once()
+        cmd_arg = mock_run.call_args[0][0]
+        self.assertIn("--check-external", cmd_arg)
 
 
 if __name__ == "__main__":

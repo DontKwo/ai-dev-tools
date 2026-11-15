@@ -1,36 +1,43 @@
 ---
 name: session-wrap-up
-description: >-
-  Consolidate lessons learned, user preferences, and architectural decisions into repository memory files at the conclusion of a session. Use when finalizing work before pull request creation.
+disable-model-invocation: true
+description: Run a 7-lever environment retrospective and consolidate durable memory updates as a separate commit.
 ---
 
-# Session Wrap-up
+# Session wrap-up
 
-Record durable knowledge and user preferences into repository memory before completing work.
+Convert session friction into permanent tooling guardrails and record durable knowledge in repository memory.
 
-## Trigger
+## Part 1: Seven-lever environment retrospective
 
-Execute at the conclusion of every coding session immediately before opening a pull request.
+Review every surprise, retry, wrong turn, or correction from the session and trace each back to a permanent fix across seven levers:
 
-## Procedure
+| Lever | Question to ask | Concrete artifact to update |
+| :--- | :--- | :--- |
+| 1. Navigation | Did the agent search aimlessly or read wrong files? | Add entry pointers to `AGENTS.md` or update `GLOSSARY.md` |
+| 2. Automated checks | Did a mechanical mistake repeat across edits? | Add a rule in `linter_custom.yaml` or git hook (`aihook`) |
+| 3. Coding standards | Was a style or naming rule violated repeatedly? | Add banned terms or `banned_vars` to `linter_custom.yaml` |
+| 4. Global instructions | Were repo-wide conventions unclear or missing? | Update `AGENTS.md` (keep within line budget) |
+| 5. Tool economy | Did verbose bash loops waste tokens? | Prefer `aitools` commands (`airepo`, `aitest`, `aisearch`) |
+| 6. No-op rules | Were any instructions ignored, stale, or redundant? | Prune dead rules via [writing-for-agents](../writing-for-agents/SKILL.md) |
+| 7. Information access | Was required doc/test/runtime evidence unreachable? | Document the command in repo docs or MCP config |
 
-1. Review session activity to identify:
-   - User preferences regarding style, workflow, or tools.
-   - Architectural and design decisions agreed upon.
-   - Project-specific facts, configurations, or conventions discovered.
-   - Post-mortem lessons learned from errors or test failures.
-2. Verify target file paths:
-   - `memory/preferences.md`: User tastes and workflow expectations.
-   - `memory/user-profile.md`: Persistent user background and operating context.
-   - `memory/decisions.md`: High-level system design and architectural choices.
-   - `memory/lessons-learned.md`: Solutions to pitfalls or tricky edge cases.
-   - `memory/projects/<repo>.md`: Specific repository architecture and stack facts.
-3. Check entries against constraints:
-   - Plain Markdown format.
-   - Entry line format: `- YYYY-MM-DD: <text>`.
-   - Newest entries placed first.
-   - Stale or contradicted entries deleted or marked superseded.
-   - Never store secrets, tokens, or private credentials.
-   - Never duplicate style or tone rules from `AGENTS.md`.
-4. Create memory updates as a distinct, dedicated git commit.
-5. If `scripts/agent_memory.py` is present in the repository, invoke it to manage updates; otherwise edit the markdown files directly.
+Apply immediate zero-risk config fixes, or propose larger architectural changes with `grill-user` before modifying shared instructions.
+
+## Part 2: Memory consolidation
+
+Identify durable knowledge from the session:
+
+- `memory/preferences.md`: User workflow tastes and communication expectations.
+- `memory/user-profile.md`: Persistent operating context.
+- `memory/decisions.md`: System design choices and rationale.
+- `memory/lessons-learned.md`: Verified solutions to tricky pitfalls.
+- `memory/projects/<repo>.md`: Repository-specific stack and layout facts.
+
+Check every memory entry against constraints:
+
+- Plain Markdown line format: `- YYYY-MM-DD: <text>`.
+- Place newest entries first; delete or supersede stale entries.
+- Store zero secrets, tokens, private paths, or personal names.
+- Avoid duplicating canonical rules already defined in `AGENTS.md`.
+- Commit memory updates in a distinct commit separate from feature edits.

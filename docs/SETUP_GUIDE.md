@@ -14,8 +14,8 @@ The setup script configures four integration layers:
    - If a target instruction file already exists, choose overwrite, idempotent append, or skip.
 
 2. **Automated Linter and MCP Server**
-   - `scripts/claudemd_linter.py`: 45-rule AST and prose validation script.
-   - `mcp/server.py`: Standard Model Context Protocol server exposing 23 native tools.
+   - `scripts/claudemd_linter.py`: 79-rule AST, UI, and prose validation script.
+   - `mcp/server.py`: Standard Model Context Protocol server exposing 27 native tools.
 
 3. **Global Terminal Shortcuts**
    - Command wrappers in `bin/` (`ailint`, `aifix`, `airepo`, `aimd`, `aitree`, `aisearch`, `airollback`, etc.) utilizing `uv` when available.

@@ -14,6 +14,18 @@ import re
 import sys
 from pathlib import Path
 
+_REPO_ROOT = Path(__file__).resolve().parent.parent
+if str(_REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(_REPO_ROOT))
+
+from scripts.custom_linter import (  # noqa: 12
+    CUSTOM_CONFIG_FILENAME,
+    CUSTOM_EXAMPLE_FILENAME,
+    CustomLinterConfig,
+    apply_custom_replacements,
+    load_custom_linter_config,
+)
+
 # Safe Unicode translation table (Rule 2)
 UNICODE_REPLACEMENTS = {
     "\u2018": "'",   # Left single curly quote
@@ -47,6 +59,24 @@ NE_NONE_RE = re.compile(r"!=\s*None\b")
 # Rule 41 pattern
 AI_BANNER_RE = re.compile(r"^(?:#+|//|\*+)\s*([#=]{5,})\s*(?:#+|\*+)?$|^([#=]{5,})\s*$")
 
+# Rule 80 patterns (raw JSX/HTML unicode escapes)
+JSX_FILE_SUFFIXES = {".jsx", ".tsx", ".html", ".vue", ".svelte"}
+JSX_UNICODE_REPLACEMENTS: tuple[tuple[str, str], ...] = (
+    ("\\u00D7", "×"),
+    ("\\u00d7", "×"),
+    ("\\u00B0", "°"),
+    ("\\u00b0", "°"),
+    ("\\u00B1", "±"),
+    ("\\u00b1", "±"),
+    ("\\u00F7", "÷"),
+    ("\\u00f7", "÷"),
+    ("\\u2248", "≈"),
+    ("\\u2212", "-"),
+)
+JSX_RAW_ESCAPE_CONTEXT_RE = re.compile(
+    r"(?:(?:>|\})[^<{\n]*\\u[0-9a-fA-F]{4}|\\u[0-9a-fA-F]{4}[^<}\n]*<)"
+)
+
 
 def fix_line(
     line: str,
@@ -54,6 +84,7 @@ def fix_line(
     path: Path,
     fix_emojis: bool,
     fix_banners: bool = True,
+    custom_config: CustomLinterConfig | None = None,
 ) -> tuple[str, list[str]]:
     changes: list[str] = []
     new_line = line
@@ -91,6 +122,21 @@ def fix_line(
             new_line = f"{indent}{prefix} ---\n"
             changes.append("Rule 41 (condensed heavy divider banner)")
 
+    # 5. Rule 80: Raw unicode escapes rendered literally in JSX/HTML markup
+    stripped_line = new_line.lstrip()
+    if path.suffix.lower() in JSX_FILE_SUFFIXES and not stripped_line.startswith("//"):
+        if JSX_RAW_ESCAPE_CONTEXT_RE.search(new_line):
+            for escape_seq, literal_char in JSX_UNICODE_REPLACEMENTS:
+                if escape_seq in new_line:
+                    new_line = new_line.replace(escape_seq, literal_char)
+                    changes.append(f"Rule 80 (replaced raw JSX escape '{escape_seq}')")
+
+    if custom_config is not None and custom_config.replace:
+        replaced_line, custom_changes = apply_custom_replacements(new_line, path, custom_config)
+        if custom_changes:
+            new_line = replaced_line
+            changes.extend(custom_changes)
+
     return new_line, changes
 
 
@@ -121,18 +167,30 @@ def fix_file(
     fix_emojis: bool,
     fix_banners: bool = True,
     fix_docstrings: bool = False,
+    custom_config: CustomLinterConfig | None = None,
 ) -> int:
+    if path.name in (CUSTOM_CONFIG_FILENAME, CUSTOM_EXAMPLE_FILENAME):
+        return 0
+
     try:
         content = path.read_text(encoding="utf-8")
     except (UnicodeDecodeError, OSError):
         return 0
 
+    active_custom_cfg = custom_config if custom_config is not None else load_custom_linter_config(file_path=path)
     lines = content.splitlines(keepends=True)
     modified_lines = []
     total_fixes = 0
 
     for i, line in enumerate(lines, 1):
-        fixed, changes = fix_line(line, i, path, fix_emojis, fix_banners)
+        fixed, changes = fix_line(
+            line,
+            i,
+            path,
+            fix_emojis,
+            fix_banners,
+            custom_config=active_custom_cfg,
+        )
         if changes:
             total_fixes += len(changes)
             print(f"  {path.name}:{i} -> {', '.join(changes)}")  # noqa: 25
@@ -172,7 +230,10 @@ def main() -> None:
         print(f"Error: Target path not found: {target}")  # noqa: 25
         sys.exit(1)
 
-    files = [target] if target.is_file() else [f for f in target.rglob("*") if f.is_file() and f.suffix in (".py", ".md", ".txt", ".js", ".ts", ".html")]
+    scan_suffixes = {".py", ".md", ".txt", ".js", ".ts", ".jsx", ".tsx", ".html", ".vue", ".svelte"}
+    files = [target] if target.is_file() else [
+        candidate for candidate in target.rglob("*") if candidate.is_file() and candidate.suffix.lower() in scan_suffixes
+    ]
 
     print("=" * 60)  # noqa: 25
     print("           Developer's AI Tools Safe Auto-Fixer")  # noqa: 25
@@ -181,6 +242,8 @@ def main() -> None:
         print("MODE: DRY RUN (no files will be written)\n")  # noqa: 25
 
     total_changes = 0
+    target_root = target if target.is_dir() else target.parent
+    custom_cfg = load_custom_linter_config(target_root=target_root)
     for f in files:
         if any(skip in f.parts for skip in {".git", ".venv", "node_modules", "__pycache__"}):
             continue
@@ -190,6 +253,7 @@ def main() -> None:
             args.fix_emojis,
             fix_banners=not args.no_banners,
             fix_docstrings=args.fix_docstrings,
+            custom_config=custom_cfg,
         )
 
     print("\n" + "=" * 60)  # noqa: 25

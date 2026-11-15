@@ -1,0 +1,3 @@
+interface:
+  display_name: "Dependency Guard"
+  short_description: "Scan Python source files to detect undeclared third-party imports and non-exi..."

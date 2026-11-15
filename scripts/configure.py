@@ -15,6 +15,8 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO_ROOT / "scripts"))
+from skills_manager import get_tool_skill_dirs, install_single_skill
+from tools_config import generate_default_config, load_tools_config
 from utils import IS_WINDOWS, format_command_path, get_user_home
 TEMPLATE_PATH = REPO_ROOT / "templates" / "INSTRUCTIONS_TEMPLATE.md"
 ENGINEERING_PATH = REPO_ROOT / "templates" / "ENGINEERING_RULES.md"
@@ -92,7 +94,11 @@ def get_tool_definitions(workspace: Path | None = None) -> dict[str, dict]:
     }
 
 
-def calc_linter_command() -> str:
+def calc_linter_command(workspace: Path | None = None) -> str:
+    if workspace is not None and workspace.resolve() == REPO_ROOT.resolve():
+        return "uv run --no-project python scripts/claudemd_linter.py"
+    if shutil.which("aitools"):
+        return "aitools lint"
     script_str = format_command_path(LINTER_SCRIPT)
     if shutil.which("uv"):
         return f"uv run --no-project python {script_str}"
@@ -100,11 +106,15 @@ def calc_linter_command() -> str:
     return f"{py_bin} {script_str}"
 
 
-def build_instructions(frontmatter: str = "") -> str:
+def build_instructions(frontmatter: str = "", workspace: Path | None = None) -> str:
     template = TEMPLATE_PATH.read_text(encoding="utf-8")
-    linter_cmd = calc_linter_command()
-    eng_path = format_command_path(ENGINEERING_PATH)
-    py_rules_path = format_command_path(PYTHON_RULES_PATH)
+    linter_cmd = calc_linter_command(workspace)
+    if workspace is not None and workspace.resolve() == REPO_ROOT.resolve():
+        eng_path = "templates/ENGINEERING_RULES.md"
+        py_rules_path = "templates/PYTHON_RULES.md"
+    else:
+        eng_path = format_command_path(ENGINEERING_PATH)
+        py_rules_path = format_command_path(PYTHON_RULES_PATH)
 
     content = template.replace("{{LINTER_COMMAND}}", linter_cmd)
     content = content.replace("{{ENGINEERING_RULES_PATH}}", eng_path)
@@ -114,32 +124,42 @@ def build_instructions(frontmatter: str = "") -> str:
     return content
 
 
-def install_file(dest: Path, content: str, default_action: str = "ask", dry_run: bool = False) -> None:
+FRONTMATTER_RE = re.compile(r"^(---\s*\n.*?\n---\s*\n+)", re.DOTALL)
+
+
+def _split_frontmatter(text: str) -> tuple[str, str]:
+    match = FRONTMATTER_RE.match(text)
+    if match:
+        return match.group(1), text[match.end():]
+    return "", text
+
+
+def install_file(dest: Path, content: str, default_action: str = "append", dry_run: bool = False) -> None:
     dest.parent.mkdir(parents=True, exist_ok=True)
 
     action = default_action
     begin_marker = "<!-- BEGIN AI-DEV-TOOLS -->"
     end_marker = "<!-- END AI-DEV-TOOLS -->"
-    bounded_content = f"{begin_marker}\n{content}\n{end_marker}"
+    frontmatter, body = _split_frontmatter(content)
+    bounded_body = f"{begin_marker}\n{body.rstrip()}\n{end_marker}"
+    full_bounded = f"{frontmatter}{bounded_body}\n"
 
     if dest.exists():
         if action == "ask":
-            print(f"\n[!] File already exists: {dest}")
-            print("    [O] Overwrite")
-            print("    [A] Append to existing file")
-            print("    [S] Skip")
-            while True:
-                choice = input("    Choose action [O/A/S]: ").strip().lower()
+            if not sys.stdin.isatty():
+                action = "append"
+            else:
+                print(f"\n[!] File already exists: {dest}")
+                print("    [A] Append to existing file (default)")
+                print("    [O] Overwrite")
+                print("    [S] Skip")
+                choice = input("    Choose action [A/O/S, default A]: ").strip().lower()
                 if choice in ("o", "overwrite"):
                     action = "overwrite"
-                    break
-                if choice in ("a", "append"):
-                    action = "append"
-                    break
-                if choice in ("s", "skip"):
+                elif choice in ("s", "skip"):
                     action = "skip"
-                    break
-                print("    Invalid input. Please enter O, A, or S.")
+                else:
+                    action = "append"
 
         if action == "skip":
             print(f"[-] Skipped: {dest}")
@@ -151,9 +171,15 @@ def install_file(dest: Path, content: str, default_action: str = "ask", dry_run:
             existing = dest.read_text(encoding="utf-8")
             if begin_marker in existing and end_marker in existing:
                 pattern = rf"{re.escape(begin_marker)}.*?{re.escape(end_marker)}"
-                updated = re.sub(pattern, bounded_content, existing, flags=re.DOTALL)
+                updated = re.sub(pattern, lambda _m: bounded_body, existing, count=1, flags=re.DOTALL)
+                if not updated.endswith("\n"):
+                    updated += "\n"
+            elif not existing.strip():
+                updated = full_bounded
+            elif frontmatter and not _split_frontmatter(existing)[0]:
+                updated = f"{frontmatter}{existing.rstrip()}\n\n{bounded_body}\n"
             else:
-                updated = existing.rstrip() + f"\n\n{bounded_content}\n"
+                updated = f"{existing.rstrip()}\n\n{bounded_body}\n"
             dest.write_text(updated, encoding="utf-8")
             print(f"[+] Appended instructions to: {dest}")
             return
@@ -161,14 +187,14 @@ def install_file(dest: Path, content: str, default_action: str = "ask", dry_run:
             if dry_run:
                 print(f"[DRY-RUN] Would overwrite: {dest}")
                 return
-            dest.write_text(content, encoding="utf-8")
+            dest.write_text(full_bounded, encoding="utf-8")
             print(f"[+] Overwrote: {dest}")
             return
     else:
         if dry_run:
             print(f"[DRY-RUN] Would create: {dest}")
             return
-        dest.write_text(content, encoding="utf-8")
+        dest.write_text(full_bounded, encoding="utf-8")
         print(f"[+] Created: {dest}")
 
 
@@ -193,11 +219,18 @@ def remove_tool_targets(selected_tools: list[str], scope: str, workspace: Path, 
             text = target.read_text(encoding="utf-8", errors="replace")
             if begin_marker in text and end_marker in text:
                 pattern = rf"\n*{re.escape(begin_marker)}.*?{re.escape(end_marker)}\n*"
-                cleaned = re.sub(pattern, "", text, flags=re.DOTALL)
-                if dry_run:
+                cleaned = re.sub(pattern, "\n\n", text, flags=re.DOTALL)
+                _, remaining_body = _split_frontmatter(cleaned.lstrip("\n"))
+                if not remaining_body.strip():
+                    if dry_run:
+                        print(f"[DRY-RUN] Would delete: {target}")
+                    else:
+                        target.unlink()
+                        print(f"[OK] Deleted: {target}")
+                elif dry_run:
                     print(f"[DRY-RUN] Would remove ai-dev-tools block from: {target}")
                 else:
-                    target.write_text(cleaned, encoding="utf-8")
+                    target.write_text(cleaned.strip("\n") + "\n", encoding="utf-8")
                     print(f"[OK] Removed ai-dev-tools block from: {target}")
             elif "claudemd_linter" in text or "ai-dev-tools" in text:
                 if dry_run:
@@ -239,7 +272,7 @@ def configure_tools(
 
         for target in targets:
             frontmatter = defn["frontmatter"] if target.suffix == ".mdc" else ""
-            content = build_instructions(frontmatter)
+            content = build_instructions(frontmatter, workspace=workspace)
             install_file(target, content, default_action=action, dry_run=dry_run)
 
 
@@ -276,7 +309,7 @@ def configure_mcp_servers(
     # 1. Claude Desktop & Claude Code
     if not tools or "claude" in tools:
         if IS_WINDOWS:
-            claude_desktop = home / "AppData" / "Roaming" / "Claude" / "claude_desktop_config.json"
+            claude_desktop = home / "AppData" / "Roaming" / "Claude" / "claude_desktop_config.json"  # noqa: 91
         elif platform.system() == "Darwin":
             claude_desktop = home / "Library" / "Application Support" / "Claude" / "claude_desktop_config.json"
         else:
@@ -301,7 +334,7 @@ def configure_mcp_servers(
         cline_entry.update({"disabled": False, "autoApprove": []})
 
         if IS_WINDOWS:
-            code_storage = home / "AppData" / "Roaming" / "Code" / "User" / "globalStorage"
+            code_storage = home / "AppData" / "Roaming" / "Code" / "User" / "globalStorage"  # noqa: 91
         elif platform.system() == "Darwin":
             code_storage = home / "Library" / "Application Support" / "Code" / "User" / "globalStorage"
         else:
@@ -421,6 +454,9 @@ def configure_skills(
     repo_root: Path,
     scope: str = "global",
     workspace: Path | None = None,
+    tools: list[str] | None = None,
+    enabled_skills: list[str] | None = None,
+    disabled_skills: list[str] | None = None,
     dry_run: bool = False,
     remove: bool = False,
 ) -> None:
@@ -430,18 +466,27 @@ def configure_skills(
 
     home = get_user_home()
     ws = workspace or Path.cwd()
-    destinations: list[Path] = []
-    if scope in ("global", "both"):
-        destinations.append(home / ".gemini" / "antigravity" / "skills")
-    if scope in ("workspace", "both"):
-        destinations.append(ws / ".agent" / "skills")
+    target_tools = tools if tools is not None else ["antigravity", "agents", "claude", "cursor", "windsurf", "cline", "codex"]
+    tool_dirs = get_tool_skill_dirs(home, ws, scope=scope)
 
-    print("\n>>> Configuring Antigravity Skills...")
-    for dest_root in destinations:
+    destinations: list[tuple[str, Path]] = []
+    for tool_name in target_tools:
+        if tool_name in tool_dirs:
+            for dest_path in tool_dirs[tool_name]:
+                destinations.append((tool_name, dest_path))
+
+    print("\n>>> Configuring AI Agent Skills...")
+    for tool_name, dest_root in destinations:
         for skill_dir in source_skills.iterdir():
             if not skill_dir.is_dir():
                 continue
-            target_dir = dest_root / skill_dir.name
+            skill_name = skill_dir.name
+            if enabled_skills and skill_name not in enabled_skills:
+                continue
+            if disabled_skills and skill_name in disabled_skills:
+                continue
+
+            target_dir = dest_root / skill_name
             if remove:
                 if target_dir.exists():
                     if dry_run:
@@ -452,14 +497,11 @@ def configure_skills(
                 continue
 
             if dry_run:
-                print(f"[DRY-RUN] Would install skill {skill_dir.name} -> {target_dir}")
+                print(f"[DRY-RUN] Would install skill {skill_name} ({tool_name}) -> {target_dir}")
                 continue
 
-            target_dir.mkdir(parents=True, exist_ok=True)
-            for file_path in skill_dir.glob("*"):
-                if file_path.is_file():
-                    shutil.copy2(file_path, target_dir / file_path.name)
-            print(f"[OK] Installed skill {skill_dir.name} -> {target_dir}")
+            install_single_skill(skill_dir, dest_root)
+            print(f"[OK] Installed skill {skill_name} ({tool_name}) -> {target_dir}")
 
 
 def interactive_menu() -> tuple[list[str], str, Path, bool]:
@@ -535,8 +577,8 @@ def main() -> None:
     parser.add_argument(
         "--action",
         choices=["ask", "overwrite", "append", "skip"],
-        default="ask",
-        help="Action when a destination file already exists.",
+        default="append",
+        help="Action when a destination file already exists (default: append).",
     )
     parser.add_argument(
         "--no-mcp",
@@ -546,7 +588,24 @@ def main() -> None:
     parser.add_argument(
         "--no-skills",
         action="store_true",
-        help="Skip automatic installation of Antigravity skills.",
+        help="Skip automatic installation of agent skills.",
+    )
+    parser.add_argument(
+        "--skills-tools",
+        help="Comma-separated tools for skill installation (antigravity, claude, cursor, windsurf, cline, codex, all)",
+    )
+    parser.add_argument(
+        "--skills",
+        help="Comma-separated whitelist of skills to install (e.g. lint-and-fix,smart-test)",
+    )
+    parser.add_argument(
+        "--exclude-skills",
+        help="Comma-separated blacklist of skills to exclude (e.g. doc-to-markdown)",
+    )
+    parser.add_argument(
+        "--init-config",
+        action="store_true",
+        help="Generate default .aitools.toml configuration file in workspace.",
     )
     parser.add_argument(
         "--dry-run",
@@ -560,6 +619,14 @@ def main() -> None:
     )
     args = parser.parse_args()
 
+    if args.init_config:
+        target_cfg = args.workspace / ".aitools.toml"
+        target_cfg.write_text(generate_default_config(), encoding="utf-8")
+        print(f"[OK] Generated default configuration: {target_cfg}")
+        ensure_custom_linter_config(args.workspace, dry_run=args.dry_run)
+        return
+
+    loaded_cfg = load_tools_config(args.workspace)
     tool_defs = get_tool_definitions(args.workspace)
 
     if not args.tools and len(sys.argv) == 1:
@@ -567,8 +634,8 @@ def main() -> None:
         configure_tools(selected, scope, workspace, args.action, dry_run=args.dry_run)
         if setup_mcp:
             configure_mcp_servers(REPO_ROOT, scope, workspace, selected, dry_run=args.dry_run)
-        if not args.no_skills and ("antigravity" in selected or not selected):
-            configure_skills(REPO_ROOT, scope, workspace, dry_run=args.dry_run)
+        if not args.no_skills:
+            configure_skills(REPO_ROOT, scope, workspace, tools=selected, dry_run=args.dry_run)
     else:
         tools_arg = args.tools or "all"
         if tools_arg.strip().lower() == "all":
@@ -576,22 +643,61 @@ def main() -> None:
         else:
             selected = [t.strip().lower() for t in tools_arg.split(",") if t.strip()]
 
+        skill_targets = [t.strip().lower() for t in args.skills_tools.split(",")] if args.skills_tools else loaded_cfg.skill_targets
+        if "all" in skill_targets:
+            skill_targets = ["antigravity", "claude", "cursor", "windsurf", "cline", "codex"]
+
+        enabled_skills = [s.strip() for s in args.skills.split(",")] if args.skills else loaded_cfg.enabled_skills
+        disabled_skills = [s.strip() for s in args.exclude_skills.split(",")] if args.exclude_skills else loaded_cfg.disabled_skills
+
         if args.remove:
             remove_tool_targets(selected, args.scope, args.workspace, dry_run=args.dry_run)
             configure_mcp_servers(REPO_ROOT, args.scope, args.workspace, selected, dry_run=args.dry_run, remove=True)
-            if not args.no_skills and ("antigravity" in selected or not selected):
-                configure_skills(REPO_ROOT, args.scope, args.workspace, dry_run=args.dry_run, remove=True)
+            if not args.no_skills:
+                configure_skills(
+                    REPO_ROOT,
+                    args.scope,
+                    args.workspace,
+                    tools=skill_targets,
+                    enabled_skills=enabled_skills,
+                    disabled_skills=disabled_skills,
+                    dry_run=args.dry_run,
+                    remove=True,
+                )
             return
 
         configure_tools(selected, args.scope, args.workspace, args.action, dry_run=args.dry_run)
         if not args.no_mcp:
             configure_mcp_servers(REPO_ROOT, args.scope, args.workspace, selected, dry_run=args.dry_run)
-        if not args.no_skills and ("antigravity" in selected or not selected):
-            configure_skills(REPO_ROOT, args.scope, args.workspace, dry_run=args.dry_run)
+        if not args.no_skills:
+            configure_skills(
+                REPO_ROOT,
+                args.scope,
+                args.workspace,
+                tools=skill_targets,
+                enabled_skills=enabled_skills,
+                disabled_skills=disabled_skills,
+                dry_run=args.dry_run,
+            )
 
+    ensure_custom_linter_config(REPO_ROOT, dry_run=args.dry_run)
     print("Configuration finished! All AI tools reference:")
     print(f"  Linter: {LINTER_SCRIPT}")
     print(f"  Rules:  {ENGINEERING_PATH}")
+
+
+def ensure_custom_linter_config(target_root: Path, dry_run: bool = False) -> None:
+    custom_cfg_path = target_root / "linter_custom.yaml"
+    if custom_cfg_path.exists():
+        return
+    example_cfg_path = REPO_ROOT / "linter_custom.example.yaml"
+    if not example_cfg_path.is_file():
+        return
+    if dry_run:
+        print(f"[DRY-RUN] Would initialize custom linter config: {custom_cfg_path}")
+        return
+    shutil.copy2(example_cfg_path, custom_cfg_path)
+    print(f"[OK] Initialized custom linter config: {custom_cfg_path}")
 
 
 if __name__ == "__main__":

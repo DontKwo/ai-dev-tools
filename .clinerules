@@ -1,3 +1,4 @@
+<!-- BEGIN AI-DEV-TOOLS -->
 # Style & Tone
 - Be terse. No preamble, conversational filler ("certainly!", "here is the code", "hope this helps"), or apologies.
 - Avoid AI writing patterns: no em dashes (rewrite sentences cleanly), no negative parallelisms (`"not just X, but Y"`), no copulative avoidance (`"serves as"`, `"stands as"`), no hype/fluff vocabulary (`"pivotal"`, `"delve"`, `"testament"`, `"tapestry"`, `"robust"`, `"boasts"`, `"seamlessly"`), and no internal citation metadata (`oaicite`, `[cite: ...]`, `【...】`).
@@ -26,7 +27,7 @@
   - Inline expressions: `uv run --no-project --python "<venv_python>" python -c "<code>"`
 - Never install packages into the environment without explicit user approval.
 - Repository tools from `ai-dev-tools` may execute with the host runner (`uv run --no-project python <script>`) when the target project virtual environment lacks tool dependencies.
-- See %USERPROFILE%\projects\ai-dev-tools\templates\PYTHON_RULES.md for additional environment context.
+- See templates/PYTHON_RULES.md for additional environment context.
 
 # Proactive Quality
 - Treat short prompts as full tasks held to full engineering standards.
@@ -53,18 +54,18 @@
 
 # Interaction
 - Ask when the answer materially changes outcome, cannot be found in repo or memory, and is costly to reverse.
-- When asking, run `grill-user` (one question at a time, each with a recommended answer and 2 or 3 options).
+- When asking, run `grill-user` in frontier rounds (each question with a recommended answer and 2 or 3 options).
 - Otherwise act and state assumptions clearly.
 - Background and cloud agents without live conversation put questions with recommended defaults in the plan, ask only blocking ones, and list assumptions in the PR.
 
 # Memory
-- Read `memory/preferences.md`, `memory/user-profile.md`, and matching `memory/projects/<repo>.md` at session start.
-- Run `session-wrap-up` at session end to propose updates as a separate commit.
+- Read `memory/preferences.md`, `memory/user-profile.md`, and matching `memory/projects/<repo>.md` at session start if present.
+- Run `session-wrap-up` at session end to propose updates as a separate commit when memory files are present.
 - Never store secrets or sensitive personal data; memory files are public.
 - `AGENTS.md` remains canonical for style rules; memory must not duplicate it.
 
 # Cloud Agents
-- When `%USERPROFILE%\projects\ai-dev-tools` is absent in a cloud VM, use repo-relative paths (e.g. `scripts/claudemd_linter.py`) and host runner `uv run --no-project python <script>`.
+- When the global ai-dev-tools repository path is absent in a cloud VM or secondary machine, use repo-relative paths (e.g. `scripts/claudemd_linter.py`) and host runner `uv run --no-project python <script>`.
 - Finish every session on a new branch with a pull request into main; never push directly to main.
 - PR body must contain: Summary, Assumptions, How verified, Not verified, Risks, Follow-ups.
 - Local workstation behavior remains exactly as specified today.
@@ -76,14 +77,14 @@
 
 # Documentation
 - Never create unsolicited .md documentation files (no unrequested READMEs, architecture summaries, or guides). Deliverables explicitly requested by the user are permitted. Internal agent artifacts and scratchpads are permitted. Editing existing documentation when modifying features is permitted.
-- See docs/DEV_MANUAL.md for the complete developer manual for all tools in scripts/, including CLI flags and programmatic APIs.
+- Check project documentation (e.g. docs/) for tool manuals, CLI flags, and APIs when available.
 
 # Domain Rules
-- For engineering, numerical, or thermodynamic tasks, follow %USERPROFILE%\projects\ai-dev-tools\templates\ENGINEERING_RULES.md. Domain equations adhering to these rules are exempt from single-letter variable checks (Rule 38).
+- For engineering, numerical, or thermodynamic tasks, follow templates/ENGINEERING_RULES.md if present. Domain equations adhering to these rules are exempt from single-letter variable checks (Rule 38).
 
 # Linter (Mandatory)
 - After every code change, run the linter:
-  uv run --no-project python %USERPROFILE%\projects\ai-dev-tools\scripts\claudemd_linter.py . --level strict
+  uv run --no-project python scripts/claudemd_linter.py . --level strict
 - In git repositories with existing history, the linter runs with `--diff` by default so only changed files get linted. Run with `--full` only when the user explicitly requests a full repository audit.
 - Verification levels (distinct from the `--full` scan scope):
   - `--level standard`: Anti-AI writing guards, core AST safety, equation formatting.
@@ -92,3 +93,4 @@
   - Fine-grained overrides: `--skip <codes>` or `--only <codes>` for targeted checks.
 - When violations occur, inspect the report file path printed in terminal output. Fix every violation and re-run until the output reads "None. Lint clean." (the report file is deleted automatically once clean).
 - `# noqa` / `# noqa: <codes>` suppresses checks; use only when code is genuinely correct as-is. For third-party, vendor, or generated code where modifications would break functionality, add targeted inline `# noqa: <code>` comments.
+<!-- END AI-DEV-TOOLS -->

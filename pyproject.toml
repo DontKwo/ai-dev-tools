@@ -1,6 +1,56 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
 [project]
 name = "ai-dev-tools"
+version = "0.2.0"
+description = "Universal AI developer tools suite: multi-editor skills, 90-rule AST & UI linter, MCP server, and unified CLI."
+readme = "README.md"
+requires-python = ">=3.9"
+license = { text = "GPL-3.0-or-later" }
 authors = [
   { name = "DontKwo" }
 ]
-license = { text = "GPL-3.0-or-later" }
+dependencies = [
+  'tomli>=2.0.0; python_version < "3.11"',
+]
+
+[project.optional-dependencies]
+test = [
+  "pytest>=8.0.0",
+]
+
+[project.scripts]
+aitools = "scripts.cli:main"
+aiui = "scripts.aiui:main"
+aiskills = "scripts.skills_manager:main"
+aidoctor = "scripts.doctor:main"
+ailint = "scripts.claudemd_linter:main"
+aifix = "scripts.lint_fixer:main"
+airepo = "scripts.repo_map:main"
+aicontext = "scripts.pack_context:main"
+aitokens = "scripts.token_budget:main"
+aitree = "scripts.dir_overview:main"
+aislice = "scripts.slice_file:main"
+aidiff = "scripts.redact_diff:main"
+aisearch = "scripts.fast_search:main"
+aideps = "scripts.check_dependencies:main"
+airollback = "scripts.rollback:main"
+aimd = "scripts.to_markdown:main"
+aiclean = "scripts.clean_encoding:main"
+aitest = "scripts.smart_test_runner:main"
+aisec = "scripts.secret_sanitizer:main"
+aisync = "scripts.sync_rules:main"
+aihook = "scripts.install_antigravity_hooks:main"
+aivars = "scripts.check_variable_names:main"
+aispell = "scripts.spell_checker:main"
+aigrill = "scripts.grill_user:main"
+aiboost = "scripts.boost_types:main"
+aiprune = "scripts.prune_dead_code:main"
+aitype = "scripts.type_coverage:main"
+ailinks = "scripts.link_checker:main"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["scripts*", "mcp*"]

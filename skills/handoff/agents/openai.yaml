@@ -1,0 +1,5 @@
+interface:
+  display_name: "Handoff"
+  short_description: "Package current goal, locked decisions, open questions, and clean file pointe..."
+policy:
+  allow_implicit_invocation: false

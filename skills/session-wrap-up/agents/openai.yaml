@@ -1,0 +1,5 @@
+interface:
+  display_name: "Session Wrap Up"
+  short_description: "Run a 7-lever environment retrospective and consolidate durable memory update..."
+policy:
+  allow_implicit_invocation: false

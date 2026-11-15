@@ -1,0 +1,3 @@
+interface:
+  display_name: "Lint And Fix"
+  short_description: "Run the 91-rule code quality, AST safety, multi-framework UI quality, custom..."

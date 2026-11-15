@@ -52,14 +52,47 @@ class TestInstallHooks(unittest.TestCase):
     def test_uninstall_hook(self, mock_stdout: StringIO) -> None:
         git_dir = self.temp_path / ".git"
         git_dir.mkdir()
-        hooks_dir = git_dir / "hooks"
-        hooks_dir.mkdir()
-        hook_file = hooks_dir / "pre-commit"
-        hook_file.write_text("fake hook", encoding="utf-8")
+        install_hooks.install_hook(self.temp_path, action="append")
+        hook_file = git_dir / "hooks" / "pre-commit"
+        self.assertTrue(hook_file.exists())
 
         install_hooks.uninstall_hook(self.temp_path)
         self.assertFalse(hook_file.exists())
-        self.assertIn("Removed pre-commit hook", mock_stdout.getvalue())
+        self.assertIn("Removed pre-commit hook block", mock_stdout.getvalue())
+
+    def test_append_preserves_existing_hook_and_is_idempotent(self) -> None:
+        hooks_dir = self.temp_path / ".git" / "hooks"
+        hooks_dir.mkdir(parents=True)
+        hook_file = hooks_dir / "pre-commit"
+        hook_file.write_text("#!/bin/sh\necho user-hook\nexit 0\n", encoding="utf-8")
+
+        install_hooks.install_hook(self.temp_path, action="append")
+        install_hooks.install_hook(self.temp_path, action="append")
+        content = hook_file.read_text(encoding="utf-8")
+        self.assertIn("echo user-hook", content)
+        self.assertEqual(content.count(install_hooks.BEGIN_MARKER), 1)
+        self.assertTrue(content.startswith("#!/bin/sh"))
+        self.assertLess(content.index(install_hooks.BEGIN_MARKER), content.index("exit 0"))
+
+    def test_uninstall_keeps_foreign_hook_content(self) -> None:
+        hooks_dir = self.temp_path / ".git" / "hooks"
+        hooks_dir.mkdir(parents=True)
+        hook_file = hooks_dir / "pre-commit"
+        hook_file.write_text("#!/bin/sh\necho user-hook\n", encoding="utf-8")
+        install_hooks.install_hook(self.temp_path, action="append")
+
+        install_hooks.uninstall_hook(self.temp_path)
+        content = hook_file.read_text(encoding="utf-8")
+        self.assertIn("echo user-hook", content)
+        self.assertNotIn(install_hooks.BEGIN_MARKER, content)
+
+    def test_uninstall_leaves_unmarked_hook_untouched(self) -> None:
+        hooks_dir = self.temp_path / ".git" / "hooks"
+        hooks_dir.mkdir(parents=True)
+        hook_file = hooks_dir / "pre-commit"
+        hook_file.write_text("fake hook", encoding="utf-8")
+        install_hooks.uninstall_hook(self.temp_path)
+        self.assertEqual(hook_file.read_text(encoding="utf-8"), "fake hook")
 
 class TestInstallAntigravityHooks(unittest.TestCase):
     def setUp(self) -> None:
@@ -102,6 +135,17 @@ class TestInstallAntigravityHooks(unittest.TestCase):
         self.assertTrue(res)
         data = json.loads(dest.read_text(encoding="utf-8"))
         self.assertNotIn("developer-linter-completion-guard", data)
+
+    def test_main_installs_and_removes_git_hook(self) -> None:
+        (self.temp_path / ".git").mkdir()
+        with patch.object(sys, "argv", ["install_antigravity_hooks.py", "--scope", "workspace", "--workspace", str(self.temp_path), "--git"]):
+            install_antigravity_hooks.main()
+        self.assertTrue((self.temp_path / ".agent" / "hooks.json").is_file())
+        self.assertTrue((self.temp_path / ".git" / "hooks" / "pre-commit").is_file())
+
+        with patch.object(sys, "argv", ["install_antigravity_hooks.py", "--scope", "workspace", "--workspace", str(self.temp_path), "--git", "--remove"]):
+            install_antigravity_hooks.main()
+        self.assertFalse((self.temp_path / ".git" / "hooks" / "pre-commit").exists())
 
 if __name__ == "__main__":
     unittest.main()

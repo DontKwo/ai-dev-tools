@@ -8,7 +8,8 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from utils import IS_WINDOWS, get_user_home
+from install_hooks import install_hook as install_git_hook, uninstall_hook as uninstall_git_hook
+from utils import IS_WINDOWS, format_command_path, get_user_home
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 LINTER_SCRIPT = REPO_ROOT / "scripts" / "claudemd_linter.py"
@@ -23,6 +24,7 @@ def get_hook_paths(workspace: Path) -> dict[str, list[Path]]:
         ],
         "global": [
             home / ".gemini" / "config" / "hooks.json",
+            home / ".gemini" / "antigravity" / "hooks.json",
         ],
     }
 
@@ -41,6 +43,15 @@ def build_hook_config(command_str: str, event: str = "PostInvocation") -> dict:
     }
 
 
+def _prune_other_guard_keys(data: dict) -> bool:
+    removed = False
+    for key in list(data.keys()):
+        if key.endswith("-linter-completion-guard") and key != "developer-linter-completion-guard":
+            del data[key]
+            removed = True
+    return removed
+
+
 def install_hook(dest: Path, command_str: str, event: str = "PostInvocation") -> bool:
     dest.parent.mkdir(parents=True, exist_ok=True)
     existing_data: dict = {}
@@ -50,6 +61,7 @@ def install_hook(dest: Path, command_str: str, event: str = "PostInvocation") ->
         except Exception:
             existing_data = {}
 
+    _prune_other_guard_keys(existing_data)
     hook_entry = build_hook_config(command_str, event)
     existing_data.update(hook_entry)
 
@@ -62,8 +74,11 @@ def remove_hook(dest: Path) -> bool:
         return False
     try:
         data = json.loads(dest.read_text(encoding="utf-8"))
+        removed = _prune_other_guard_keys(data)
         if "developer-linter-completion-guard" in data:
             del data["developer-linter-completion-guard"]
+            removed = True
+        if removed:
             dest.write_text(json.dumps(data, indent=2), encoding="utf-8")
             return True
     except Exception:
@@ -94,13 +109,19 @@ def main() -> None:
         help="Lifecycle event (fires only when done, not on every tool call)",
     )
     parser.add_argument(
+        "--git",
+        action="store_true",
+        help="Also install or remove git pre-commit hook in workspace",
+    )
+    parser.add_argument(
         "--remove",
         action="store_true",
         help="Uninstall the completion hook",
     )
     args = parser.parse_args()
 
-    paths = get_hook_paths(args.workspace.resolve())
+    resolved_ws = args.workspace.resolve()
+    paths = get_hook_paths(resolved_ws)
     targets: list[tuple[str, Path]] = []
     if args.scope in ("workspace", "both"):
         for p in paths["workspace"]:
@@ -109,9 +130,7 @@ def main() -> None:
         for p in paths["global"]:
             targets.append(("Global", p))
 
-    linter_path = str(LINTER_SCRIPT)
-    if " " in linter_path:
-        linter_path = f'"{linter_path}"'
+    linter_path = format_command_path(LINTER_SCRIPT)
     if shutil.which("uv"):
         cmd = f"uv run --no-project python {linter_path} . --diff"
     else:
@@ -129,6 +148,12 @@ def main() -> None:
             print(f"[OK] Installed completion hook in {scope_name}: {path}")
             print(f"     Event: {args.event} (triggers when task finishes)")
             print(f"     Command: {cmd}")
+
+    if args.git or (args.scope in ("workspace", "both") and (resolved_ws / ".git").is_dir()):
+        if args.remove:
+            uninstall_git_hook(resolved_ws)
+        else:
+            install_git_hook(resolved_ws, action="append")
 
 
 if __name__ == "__main__":

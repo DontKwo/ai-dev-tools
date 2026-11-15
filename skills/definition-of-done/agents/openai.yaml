@@ -1,0 +1,5 @@
+interface:
+  display_name: "Definition Of Done"
+  short_description: "Pre-flight verification checklist and PR summary package with merge danger ra..."
+policy:
+  allow_implicit_invocation: false

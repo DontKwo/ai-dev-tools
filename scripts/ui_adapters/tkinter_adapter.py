@@ -75,6 +75,6 @@ class TkinterAdapter:
         if "tkinter" not in source:
             return sites
         for idx, line in enumerate(source.splitlines(), 1):
-            if ".place(" in line:
-                sites.append(Site(file=path, line=idx, code=54, message="Layout hazard: absolute .place() coordinate geometry"))
+            if ".place(" in line:  # noqa: 54
+                sites.append(Site(file=path, line=idx, code=54, message="Layout hazard: absolute .place() coordinate geometry"))  # noqa: 54
         return sites

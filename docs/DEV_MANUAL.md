@@ -149,7 +149,7 @@ options:
 
 ## scripts/claudemd_linter.py
 ### Programmatic APIs
-Functions: `noqa_codes(line)`, `suppressed(line, code)`, `scan_text_line(...)`, `scan_markdown_headings(...)`, `scan_comment_blocks(...)`, `extract_function_bodies(source)`, `detect_duplicate_code(...)`, `detect_unused_code(files, violations)`, `detect_module_graph_issues(...)`, `scan_python_ast(...)`, `scan_dialog_label_selectability(...)`, `scan_missing_tooltips(...)`, `scan_os_specific_code(...)`, `scan_single_file(path_str)`, `scan_file(path, violations)`, `load_cache()`, `save_cache(cache)`, `get_file_hash(path)`, `is_scannable_file(fpath)`, `collect_git_diff_files(...)`, `collect_files(target)`, `audit_suppressions(target)`, `run_standard_linter(target_dir)`, `is_git_repository(cwd)`, `calc_report_path(root, custom_path)`, `parse_cli_args(raw_args)`
+Functions: `noqa_codes(line)`, `suppressed(line, code)`, `scan_text_line(...)`, `scan_markdown_headings(...)`, `scan_comment_blocks(...)`, `extract_function_bodies(source)`, `detect_duplicate_code(...)`, `detect_unused_code(files, violations)`, `detect_module_graph_issues(...)`, `detect_repo_hygiene_issues(root, violations)`, `scan_python_ast(...)`, `scan_dialog_label_selectability(...)`, `scan_missing_tooltips(...)`, `scan_os_specific_code(...)`, `scan_single_file(path_str)`, `scan_file(path, violations)`, `load_cache()`, `save_cache(cache)`, `get_linter_hash()`, `get_file_hash(path)`, `is_scannable_file(fpath)`, `collect_git_diff_files(...)`, `collect_files(target)`, `audit_suppressions(target)`, `run_standard_linter(target_dir)`, `is_git_repository(cwd)`, `calc_report_path(root, custom_path)`, `parse_cli_args(raw_args)`
 
 ### CLI Flags
 ```text
@@ -253,7 +253,7 @@ options:
 
 ## scripts/doctor.py
 ### Programmatic APIs
-Functions: `check_git_tracking(repo_root)`, `check_python_version(repo_root)`, `inspect_mcp_config(mcp_path)`, `check_installed_skills(repo_root, home)`, `get_all_config_paths()`, `inspect_config_file(name, path)`, `heal_config_file(info)`, `clean_stale_reports_and_cache(dry_run)`, `run_diagnostics(auto_heal, clean_cache, repair)`
+Functions: `check_ci_workflows(repo_root)`, `check_git_tracking(repo_root)`, `check_python_version(repo_root)`, `inspect_mcp_config(mcp_path)`, `check_installed_skills(repo_root, home)`, `get_all_config_paths()`, `inspect_config_file(name, path)`, `heal_config_file(info)`, `clean_stale_reports_and_cache(dry_run)`, `run_diagnostics(auto_heal, clean_cache, repair)`
 
 ### CLI Flags
 ```text
@@ -463,6 +463,25 @@ Functions: `parse_requirements_txt(file_path)`, `parse_package_json(file_path)`,
 ### CLI Flags
 ```text
 usage: license_checker.py [-h]
+```
+
+## scripts/link_checker.py
+### Programmatic APIs
+Functions: `slugify_heading(heading_text)`, `extract_markdown_anchors(file_path)`, `find_workflow_artifact_names(repo_root)`, `validate_markdown_file(file_path, repo_root, check_external)`, `run_link_check(target_dir, check_external, verbose)`
+
+### CLI Flags
+```text
+usage: link_checker.py [-h] [--check-external] [--verbose] [path]
+
+Audit markdown links and release download targets.
+
+positional arguments:
+  path              Directory or markdown file to check (default: .)
+
+options:
+  -h, --help        show this help message and exit
+  --check-external  Validate external HTTP/HTTPS URLs
+  --verbose, -v     Print verbose scan progress
 ```
 
 ## scripts/lint_fixer.py
@@ -849,6 +868,60 @@ positional arguments:
 
 options:
   -h, --help  show this help message and exit
+```
+
+## scripts/tools_config.py
+### Programmatic APIs
+Functions: `load_tools_config(root_or_file)`, `save_tools_config(path, config)`, `generate_default_config()`, `parse_toml_content(content)`
+Classes: `AiToolsConfig`
+
+## scripts/skills_manager.py
+### Programmatic APIs
+Functions: `list_available_skills(repo_root)`, `get_skill_status(repo_root, home, ws, tools, scope)`, `sync_skills(repo_root, home, ws, config, scope, dry_run)`, `toggle_skill_in_config(skill_name, enable, config_path)`
+Classes: `SkillInfo`
+
+### CLI Commands
+```text
+usage: skills_manager.py [-h] {list,status,enable,disable,sync} ...
+
+Manage agent skills across AI editors.
+
+subcommands:
+  list        List all available skills with descriptions.
+  status      Show skill installation status across editors.
+  enable      Enable a skill and sync across editors.
+  disable     Disable a skill and sync across editors.
+  sync        Synchronize skills based on current configuration.
+```
+
+## scripts/ui_layout.py
+### Programmatic APIs
+Functions: `check_element_overlaps(elements, tolerance_px, screen_id, matrix_cell)`, `check_target_size(elements, min_width, min_height)`, `check_parent_clipping(elements, tolerance_px, screen_id, matrix_cell)`, `check_viewport_overflow(elements, viewport_width, viewport_height, tolerance_px, screen_id, matrix_cell)`
+Classes: `Rect`
+
+## scripts/cli.py (aitools)
+### Programmatic APIs
+Functions: `run_target_script(script_name, args)`, `print_usage()`
+
+### CLI Commands
+```text
+usage: aitools <command> [options...]
+
+Commands:
+  doctor        Run diagnostics on environment, tool configs, and skills
+  lint          Run 90-rule AST, UI, and writing style linter
+  fix           Run deterministic mechanical auto-fixers
+  ui            Multi-framework UI manifest, evidence, and audit manager
+  skills        Inspect, status, toggle, and sync agent skills across editors
+  config        Configure AI tool instruction files, MCP servers, and skills
+  init-config   Generate default .aitools.toml declarative configuration file
+  checkpoint    Manage workspace snapshot checkpoints (save, restore, diff, list)
+  secrets       Scan files for leaked credentials and sensitive tokens
+  test          Run smart AST-driven test runner
+  deps          Scan for hallucinated or missing dependencies
+  boost         Auto-boost type annotations on Python files
+  clean         Clean double-encoded UTF-8 and mojibake text
+  links         Audit markdown links, anchors, and release download targets
 ```
 
 ## Test Execution Guidelines

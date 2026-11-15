@@ -139,11 +139,11 @@ class TestClaudemdLinter(unittest.TestCase):
         self.assertNotIn(38, codes_good)
 
     def test_rule_39_collapsed_equation(self) -> None:
-        bad_code = "def calc_result(a: float, b: float, c: float, d: float, e: float) -> float:\n    return a + b * c / d - e\n"
+        bad_code = "def calc_result(a: float, b: float, x: float, d: float, e: float) -> float:\n    return a + b * x / d - e\n"
         codes_bad = self._scan_snippet(bad_code)
         self.assertIn(39, codes_bad)
 
-        good_code = "def calc_result(a: float, b: float, c: float) -> float:\n    term = b * c\n    return a + term\n"
+        good_code = "def calc_result(a: float, b: float, x: float) -> float:\n    term = b * x\n    return a + term\n"
         codes_good = self._scan_snippet(good_code)
         self.assertNotIn(39, codes_good)
 

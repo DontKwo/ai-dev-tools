@@ -38,12 +38,12 @@ set "MODE_CHOICE=%errorlevel%"
 if "%MODE_CHOICE%"=="1" (
     echo.
     echo [+] Configuring Claude Code...
-    call %RUNNER% "%CONFIGURATOR%" --tools claude --scope global
+    call %RUNNER% "%CONFIGURATOR%" --tools claude --scope global --action append
 )
 if "%MODE_CHOICE%"=="2" (
     echo.
     echo [+] Configuring ALL supported AI tools...
-    call %RUNNER% "%CONFIGURATOR%" --tools all --scope global
+    call %RUNNER% "%CONFIGURATOR%" --tools all --scope global --action append
 )
 if "%MODE_CHOICE%"=="3" (
     echo.
@@ -85,5 +85,6 @@ if not errorlevel 2 (
 
 echo.
 echo Setup finished. Selected AI tools configured.
+echo Tip: Install full CLI suite in your environment with: uv tool install .
 echo.
 pause

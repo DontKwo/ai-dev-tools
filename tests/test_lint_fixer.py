@@ -178,6 +178,22 @@ class TestLintFixerFileProcessing(unittest.TestCase):
         count = fix_file(missing_file, dry_run=False, fix_emojis=False)
         self.assertEqual(count, 0)
 
+    def test_fix_jsx_raw_unicode_escape(self) -> None:
+        raw_jsx = "<span>1\\u00D7 batch at 350\\u00B0F</span>\n"
+        fixed_jsx, changes = fix_line(raw_jsx, 1, Path("RecipeView.tsx"), fix_emojis=False)
+        self.assertEqual(fixed_jsx, "<span>1× batch at 350°F</span>\n")
+        self.assertEqual(len(changes), 2)
+
+        raw_brace_jsx = "<div>{multiplier}\\u00D7</div>\n"
+        fixed_brace, brace_changes = fix_line(raw_brace_jsx, 1, Path("Totals.tsx"), fix_emojis=False)
+        self.assertEqual(fixed_brace, "<div>{multiplier}×</div>\n")
+        self.assertEqual(len(brace_changes), 1)
+
+        js_string = 'const mult = "\\u00D7";\n'
+        fixed_js, js_changes = fix_line(js_string, 1, Path("utils.ts"), fix_emojis=False)
+        self.assertEqual(fixed_js, js_string)
+        self.assertEqual(len(js_changes), 0)
+
 
 if __name__ == "__main__":
     unittest.main()

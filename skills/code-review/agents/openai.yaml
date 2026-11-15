@@ -1,0 +1,3 @@
+interface:
+  display_name: "Code Review"
+  short_description: "Run a dual-axis parallel review on a branch diff checking coding standards, l..."

@@ -13,7 +13,7 @@ Execute only relevant test files affected by local modifications.
 Run impacted tests:
 
 ```bash
-uv run --no-project python scripts/smart_test_runner.py
+aitools test
 ```
 
 Options:

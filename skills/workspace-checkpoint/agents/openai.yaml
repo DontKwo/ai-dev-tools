@@ -1,0 +1,3 @@
+interface:
+  display_name: "Workspace Checkpoint"
+  short_description: "Create snapshot checkpoints of the workspace and execute one-step rollbacks i..."

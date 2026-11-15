@@ -1,0 +1,82 @@
+# Custom Linter Configuration Template (Rule 91 & Rule 38 overrides)
+# Copy to 'linter_custom.yaml' (gitignored) or '~/.config/ai-dev-tools/linter_custom.yaml'.
+# All lists below default to empty; uncomment or add entries for your workspace.
+
+# Words or phrases flagged anywhere in scanned files for manual removal (Rule 91).
+# Options per entry:
+#   - "literal"                                  (case-insensitive, smart word-boundary)
+#   - pattern: "literal"
+#     case-sensitive: false                      # default: false
+#     word-boundary: true                        # default: true (alphanumeric edge boundaries)
+#     regex: false                               # default: false (treat pattern as regex)
+#     include-tests: true                        # default: true (also scan test files)
+#     reason: "Optional human note"
+#
+# Suggested patterns to uncomment and tailor to your environment:
+#   Portability & OS paths:
+#     - pattern: "C:"                            # plus "D:", "E:", "Program Files", "AppData", "OneDrive"
+#       word-boundary: true
+#     - pattern: "/Users/"
+#       case-sensitive: true
+#       word-boundary: false
+#     - pattern: "/home/"
+#       case-sensitive: true
+#       word-boundary: false
+#   Network & infrastructure privacy (regex: true):
+#     - pattern: "\\b192\\.168\\.\\d{1,3}\\.\\d{1,3}\\b"
+#       regex: true
+#     - pattern: "\\b100\\.\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}\\b"
+#       regex: true
+#     - pattern: "\\b[a-zA-Z0-9-]+\\.(?:local|internal|lan|home\\.arpa|tail[a-z0-9]+\\.ts\\.net)\\b"
+#       regex: true
+#     - pattern: "\\b[A-Za-z0-9._%+-]+@(?:gmail|yahoo|outlook|hotmail|icloud|protonmail|proton)\\.[A-Za-z]{2,}\\b"
+#       regex: true
+#   Workflow hygiene:
+#     - pattern: "HACK"                          # plus "XXX", "FIXME"
+#       case-sensitive: true
+#       include-tests: false
+#     - pattern: "\\bTODO\\s*\\([^)]+\\)"
+#       regex: true
+#       include-tests: false
+remove: []
+
+# Exact replacements flagged by the linter (Rule 91) and auto-fixed by lint_fixer.py.
+# Example:
+#   - pattern: "old-repo-alias"
+#     replacement: "current-repo-name"
+#     case-sensitive: false
+#     word-boundary: true
+#     auto-fix: true
+replace: []
+
+# Domain-specific short identifiers exempted from Rule 38 vague/single-letter naming checks.
+# Example: ["Re", "Pr", "Nu", "AoA", "dx", "dt", "rho"]
+allowed_vars: []
+
+# Identifier names explicitly disallowed in Python assignments/parameters (Rule 38).
+# Example: ["my_temp_hack", "old_client"]
+banned_vars: []
+
+# Python modules disallowed from import/from-import statements (Rule 91).
+# Example:
+#   - module: "requests_mock"
+#     reason: "Use unittest.mock instead."
+banned_imports: []
+
+# Path-scoped text presence/absence guards checked across non-ignored files (Rule 91).
+# Example:
+#   - glob: "src/**/*.py"
+#     must-not-contain: ["DO_NOT_SHIP"]
+#     must-contain: []
+#     case-sensitive: false
+file_guards: []
+
+# Glob patterns or folder names skipped completely by claudemd_linter.py.
+# Example: ["generated/**", "vendor/**"]
+ignore_paths: []
+
+# Skip specific built-in rule codes on matching file globs.
+# Example:
+#   - glob: "tests/**/*.py"
+#     skip: [11, 25]
+rule_overrides: []

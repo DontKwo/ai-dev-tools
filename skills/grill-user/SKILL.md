@@ -1,54 +1,57 @@
 ---
 name: grill-user
 description: >-
-  Stress-test a plan, architectural decision, design proposal, or user idea through rigorous adversarial questioning. Use when the user requests grilling, before executing risky refactors, or when validating technical architecture.
+  Stress-test a plan, design proposal, architecture change, or user idea through
+  frontier-round questioning until shared understanding is reached. Use when the
+  user requests grilling, before large or under-specified tasks, or when design
+  decisions conflict or stay ambiguous.
 ---
 
-# Grill User
+# Grill user
 
-Critique and stress-test plans, architecture, and intent through focused interrogation.
+Resolve design ambiguity by walking the decision tree from root branches to leaves.
 
-## Triggers
+## Fact-check before asking
 
-- Real doubt about intent, scope, priority, or technical trade-offs.
-- Before formulating an execution plan for any large or under-specified task.
-- When the user explicitly requests grilling (for example, "grill me").
+Never ask the user something you can verify from the codebase, git history, or `memory/` files:
 
-## Boundaries (What Not to Grill About)
+- Inspect relevant files or dispatch a fresh-context `research` subagent for non-trivial factual questions.
+- Skip trivial or easily reversible choices and act directly with stated defaults.
+- Ask only when the decision depends on human intent, domain tradeoffs, or one-way consequences.
 
-- Anything discoverable from the repository, code, or memory files.
-- Anything covered by standing instructions or project standards.
-- Trivial, low-impact, or easily reversible choices.
+## Frontier-round protocol
 
-## Procedure
+Walk dependencies in breadth-first frontier rounds instead of guessing ahead or interrogating randomly:
 
-1. Explore the codebase and environment first to eliminate factual unknowns.
-2. List open questions ordered strictly by dependency and architectural impact.
-3. Ask one question at a time, highest impact first.
-4. Format each question with a recommended answer, reason, and 2 or 3 options.
-5. Stop when remaining unknowns are low impact (cap at about 7 questions maximum).
-6. If the user states "just do it", proceed immediately with the recommended answers.
-7. Output a shared-understanding block before implementation:
-   - Goal
-   - Decisions
-   - Assumptions
-   - Out of scope
-   - Acceptance criteria (including standing defaults)
+1. Identify open design branches from the user prompt and repository inspection.
+2. Ask one to four independent questions on the current frontier (highest architectural leverage first). Wait for replies before opening downstream branches.
+3. Frame each question in plain domain terms and pair it with a recommended default and concise options:
 
-## Async Mode for Cloud Agents
-
-Background and cloud agents without live interactive terminals cannot hold multi-turn dialogue. Instead:
-1. Run with `--async` to generate questions and recommended defaults.
-2. Include open questions and recommended defaults in the written plan.
-3. Ask only blocking questions; proceed on non-blocking items with stated defaults.
-4. Record every assumption in the pull request description.
-
-## Command
-
-Run interactive or async grilling:
-
-```bash
-uv run --no-project python scripts/grill_user.py "<topic_or_plan>"
-uv run --no-project python scripts/grill_user.py "<topic_or_plan>" --async
+```text
+[Q] Q1 -- Where should validation errors surface before saving?
+[A] Recommended: Inline field validation plus a top summary banner, so users fix mistakes without losing form state.
+    Options: (a) Inline + banner (recommended), (b) Modal dialog, (c) Submit-time toast.
 ```
 
+4. If the user replies "yes" (or "just do it"), accept the stated recommendation for every open question in the round.
+5. Stop when remaining unknowns are low-impact details. Output a compact Shared Understanding block (`Goal`, `Decisions`, `Assumptions`, `Out of scope`, `Acceptance criteria`).
+
+## Synchronize domain docs
+
+When working inside a codebase, keep project domain documentation current as decisions lock in (see [domain-modeling](../domain-modeling/SKILL.md)):
+
+- Record settled canonical domain terms and `_Avoid:_` synonyms in `GLOSSARY.md` when the project maintains one.
+- Propose an Architecture Decision Record in `docs/adr/NNNN-<slug>.md` when a decision is hard to reverse, surprising without context, or settled among real tradeoffs.
+
+## Async mode for cloud agents
+
+Headless and background runs cannot hold multi-turn dialogue. Use `aitools grill`:
+
+```bash
+aitools grill "<topic_or_plan>"
+aitools grill "<topic_or_plan>" --async
+```
+
+1. Write open questions and recommended defaults into the plan.
+2. Halt and ask only blocking questions; proceed on non-blocking choices using the recommended defaults.
+3. Record all assumed defaults in the pull request description.

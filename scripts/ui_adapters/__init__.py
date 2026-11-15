@@ -44,5 +44,13 @@ def get_adapter(name: str) -> UiAdapter | None:
     return None
 
 
+def _deduplicate_web_wrappers(adapters: list[UiAdapter]) -> list[UiAdapter]:
+    names = {ad.name for ad in adapters}
+    if any(wrapper in names for wrapper in ("tauri", "electron", "pywebview")):
+        return [ad for ad in adapters if ad.name != "web"]
+    return adapters
+
+
 def detect_adapters(root: Path) -> list[UiAdapter]:
-    return [ad for ad in ADAPTERS if ad.detect(root)]
+    detected = [ad for ad in ADAPTERS if ad.detect(root)]
+    return _deduplicate_web_wrappers(detected)

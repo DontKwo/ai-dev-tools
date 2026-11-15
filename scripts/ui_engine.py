@@ -5,7 +5,7 @@ import re
 from fnmatch import fnmatch
 from pathlib import Path
 from typing import Any
-from scripts.ui_adapters import detect_adapters, get_all_adapters
+from scripts.ui_adapters import detect_adapters, get_adapter, get_all_adapters
 from scripts.ui_adapters.base import UiAdapter
 from scripts.ui_combinations import verify_screen_combinations
 from scripts.ui_config import UiConfig
@@ -68,9 +68,24 @@ def _adapters_for_file(fpath: Path, source: str, adapters: list[UiAdapter]) -> l
     return matched
 
 
+def _resolve_adapters(root: Path, config: UiConfig) -> list[UiAdapter]:
+    if config.frameworks:
+        selected: list[UiAdapter] = []
+        for name in config.frameworks:
+            adapter = get_adapter(name)
+            if adapter is not None:
+                selected.append(adapter)
+        if selected:
+            names = {ad.name for ad in selected}
+            if any(w in names for w in ("tauri", "electron", "pywebview")):
+                selected = [ad for ad in selected if ad.name != "web"]
+            return selected
+    return detect_adapters(root) or get_all_adapters()
+
+
 def build_manifest(root: Path, config: UiConfig, files: list[Path] | None = None) -> UiManifest:
     manifest = UiManifest()
-    adapters = detect_adapters(root) or get_all_adapters()
+    adapters = _resolve_adapters(root, config)
     raw_files = files if files is not None else [p for p in root.rglob("*") if p.is_file()]
     target_files = [p for p in raw_files if _is_valid_ui_file(p)]
 
@@ -99,7 +114,7 @@ def evaluate_static_rules(
     files: list[Path] | None = None,
 ) -> list[tuple[Path, int, int]]:
     violations: list[tuple[Path, int, int]] = []
-    adapters = detect_adapters(root) or get_all_adapters()
+    adapters = _resolve_adapters(root, config)
     raw_files = files if files is not None else [p for p in root.rglob("*") if p.is_file()]
     target_files = [p for p in raw_files if _is_valid_ui_file(p)]
 

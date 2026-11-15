@@ -1,0 +1,5 @@
+interface:
+  display_name: "Implement"
+  short_description: "Execute an approved spec or ticket end-to-end with checkpoints, TDD cycles, s..."
+policy:
+  allow_implicit_invocation: false

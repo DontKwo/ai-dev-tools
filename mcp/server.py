@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Standard Model Context Protocol (MCP) Server for Developer's AI Tools.
-Exposes the 45-rule linter, safe auto-fixer, symbol map generator, and encoding cleaner
+Exposes the 90-rule linter, safe auto-fixer, symbol map generator, and encoding cleaner
 directly as native MCP tools to Claude, Cursor, Windsurf, Cline, and Antigravity.
 """
 
@@ -38,6 +38,8 @@ SPELL_SCRIPT = REPO_ROOT / "scripts" / "spell_checker.py"
 GRILL_SCRIPT = REPO_ROOT / "scripts" / "grill_user.py"
 TYPE_COVERAGE_SCRIPT = REPO_ROOT / "scripts" / "type_coverage.py"
 AIUI_SCRIPT = REPO_ROOT / "scripts" / "aiui.py"
+SKILLS_SCRIPT = REPO_ROOT / "scripts" / "skills_manager.py"
+LINK_CHECKER_SCRIPT = REPO_ROOT / "scripts" / "link_checker.py"
 
 IS_WINDOWS = platform.system() == "Windows"
 BASE_CMD: list[str] = (
@@ -88,7 +90,7 @@ def resolve_cwd(arguments: dict, target_key: str = "target") -> Path | None:
 TOOLS = [
     {
         "name": "run_linter",
-        "description": "Run the 45-rule claudemd linter against code/markdown files to detect AI writing fluff, syntax, and GUI flaws.",
+        "description": "Run the 90-rule claudemd linter against code/markdown files to detect AI writing fluff, syntax, and multi-framework UI flaws.",
         "inputSchema": {
             "type": "object",
             "properties": {
@@ -394,6 +396,34 @@ TOOLS = [
             },
         },
     },
+    {
+        "name": "manage_skills",
+        "description": "Inspect, list, status, toggle, or synchronize AI agent skills across editors.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "action": {
+                    "type": "string",
+                    "enum": ["list", "status", "enable", "disable", "sync"],
+                    "description": "Action to perform (default: 'status')",
+                },
+                "skill": {"type": "string", "description": "Skill name for enable/disable actions"},
+                "tools": {"type": "string", "description": "Comma-separated target editors (antigravity, claude, cursor, etc.)"},
+            },
+        },
+    },
+    {
+        "name": "check_links",
+        "description": "Audit markdown links, local file references, heading anchors, and release download targets.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "target": {"type": "string", "description": "Target directory or markdown file (default: current directory)"},
+                "check_external": {"type": "boolean", "description": "Validate external HTTP/HTTPS URLs"},
+                "verbose": {"type": "boolean", "description": "Print per-file scan output"},
+            },
+        },
+    },
 ]
 
 
@@ -674,6 +704,29 @@ def _handle_ui_evidence_summary(arguments: dict, effective_cwd: Path | None) -> 
     output = run_command_tool(cmd, cwd=effective_cwd)
     return [{"type": "text", "text": output}]
 
+
+def _handle_manage_skills(arguments: dict, effective_cwd: Path | None) -> list[dict]:
+    action = arguments.get("action", "status")
+    cmd = BASE_CMD + [str(SKILLS_SCRIPT), action]
+    if action in ("enable", "disable") and "skill" in arguments:
+        cmd.append(arguments["skill"])
+    if "tools" in arguments and arguments["tools"]:
+        cmd.extend(["--tools", arguments["tools"]])
+    output = run_command_tool(cmd, cwd=effective_cwd)
+    return [{"type": "text", "text": output}]
+
+
+def _handle_check_links(arguments: dict, effective_cwd: Path | None) -> list[dict]:
+    target = str(arguments.get("target", "."))
+    cmd = BASE_CMD + [str(LINK_CHECKER_SCRIPT), target]
+    if arguments.get("check_external"):
+        cmd.append("--check-external")
+    if arguments.get("verbose"):
+        cmd.append("--verbose")
+    output = run_command_tool(cmd, cwd=effective_cwd)
+    return [{"type": "text", "text": output}]
+
+
 TOOL_HANDLERS = {
     "run_linter": _handle_run_linter,
     "run_safe_fixer": _handle_run_safe_fixer,
@@ -701,6 +754,8 @@ TOOL_HANDLERS = {
     "analyze_type_coverage": _handle_analyze_type_coverage,
     "ui_lint": _handle_ui_lint,
     "ui_evidence_summary": _handle_ui_evidence_summary,
+    "manage_skills": _handle_manage_skills,
+    "check_links": _handle_check_links,
 }
 
 

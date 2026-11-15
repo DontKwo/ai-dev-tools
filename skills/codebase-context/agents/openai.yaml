@@ -1,0 +1,3 @@
+interface:
+  display_name: "Codebase Context"
+  short_description: "Generate token-efficient symbol maps, visual directory trees, targeted file s..."

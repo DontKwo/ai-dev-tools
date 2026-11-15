@@ -13,7 +13,7 @@ Audit project imports against installed environments and declared package config
 Scan the project for undeclared or non-existent packages:
 
 ```bash
-uv run --no-project python scripts/check_dependencies.py [target]
+aitools deps [target]
 ```
 
 ## Behavior

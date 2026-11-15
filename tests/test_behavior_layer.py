@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import io
+import json
 import re
 import sys
 import unittest
@@ -126,6 +127,44 @@ class TestBehaviorLayer(unittest.TestCase):
         self.assertIn("### Grilling Questions & Defaults: Redesign Architecture", output)
         self.assertIn("Recommended Default:", output)
         self.assertIn("Recorded Assumptions", output)
+
+    def test_plugin_manifest_matches_skills(self) -> None:
+        """Verify .claude-plugin manifests match every skill directory cleanly."""
+        plugin_path = REPO_ROOT / ".claude-plugin" / "plugin.json"
+        marketplace_path = REPO_ROOT / ".claude-plugin" / "marketplace.json"
+        self.assertTrue(plugin_path.is_file(), "Missing .claude-plugin/plugin.json")
+        self.assertTrue(marketplace_path.is_file(), "Missing .claude-plugin/marketplace.json")
+
+        plugin_data = json.loads(plugin_path.read_text(encoding="utf-8"))
+        marketplace_data = json.loads(marketplace_path.read_text(encoding="utf-8"))
+        self.assertEqual(plugin_data.get("name"), "ai-dev-tools")
+        self.assertGreaterEqual(len(marketplace_data.get("plugins", [])), 1)
+
+        skills_dir = REPO_ROOT / "skills"
+        self.assertFalse((skills_dir / "jules-orchestrator").exists())  # noqa: 91
+        expected = sorted(f"./skills/{p.name}" for p in skills_dir.iterdir() if p.is_dir())
+        self.assertEqual(sorted(plugin_data.get("skills", [])), expected)
+
+    def test_skills_openai_yaml_and_invocation_parity(self) -> None:
+        """Verify every skill defines agents/openai.yaml matching its invocation mode."""
+        skills_dir = REPO_ROOT / "skills"
+        for sdir in skills_dir.iterdir():
+            if not sdir.is_dir():
+                continue
+            skill_md = sdir / "SKILL.md"
+            openai_yaml = sdir / "agents" / "openai.yaml"
+            self.assertTrue(openai_yaml.is_file(), f"Missing agents/openai.yaml in {sdir.name}")
+
+            skill_text = skill_md.read_text(encoding="utf-8")
+            yaml_text = openai_yaml.read_text(encoding="utf-8")
+            self.assertIn("display_name:", yaml_text)
+            self.assertIn("short_description:", yaml_text)
+
+            is_user_only = "disable-model-invocation: true" in skill_text
+            if is_user_only:
+                self.assertIn("allow_implicit_invocation: false", yaml_text, f"{sdir.name} openai.yaml out of sync")
+            else:
+                self.assertNotIn("allow_implicit_invocation: false", yaml_text, f"{sdir.name} openai.yaml out of sync")
 
 
 if __name__ == "__main__":

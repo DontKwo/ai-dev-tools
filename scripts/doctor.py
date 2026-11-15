@@ -16,8 +16,11 @@ from typing import Union
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from utils import IS_WINDOWS, get_user_home
 from configure import configure_skills
+from custom_linter import load_custom_linter_config
+from skills_manager import get_tool_skill_dirs
+from tools_config import load_tools_config
+from utils import IS_WINDOWS, detect_android_release_issues, format_command_path, get_user_home
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 LINTER_SCRIPT = REPO_ROOT / "scripts" / "claudemd_linter.py"
@@ -30,6 +33,103 @@ def check_ui_helpers(repo_root: Path) -> dict[str, bool]:
     ui_templates = repo_root / "templates" / "ui_audit"
     frameworks = ("pyqt", "web", "android", "flutter", "ios", "tkinter", "wxpython", "kivy", "textual", "dotnet")
     return {fw: (ui_templates / fw).is_dir() for fw in frameworks}
+
+
+def _inspect_release_workflow(repo_root: Path, release_file: Path, info: dict[str, Union[bool, list[str]]]) -> None:
+    try:
+        content = release_file.read_text(encoding="utf-8")
+    except OSError as err:
+        info["warnings"].append(f"Failed to read release.yml: {err}")
+        return
+
+    warnings_list: list[str] = info["warnings"]  # type: ignore[assignment]
+    ok_list: list[str] = info["ok"]  # type: ignore[assignment]
+
+    has_push = "push:" in content
+    has_pull_request = "pull_request:" in content
+    if has_push and has_pull_request:
+        ok_list.append("release.yml triggers on both push and pull_request")
+    else:
+        if not has_push:
+            warnings_list.append("release.yml: missing 'push:' trigger")
+        if not has_pull_request:
+            warnings_list.append("release.yml: missing 'pull_request:' trigger")
+
+    if re.search(r"tag_name:.*['\"]latest['\"]", content):
+        warnings_list.append(
+            "release.yml: static 'latest' tag_name overwrites release in-place instead of publishing versioned releases"
+        )
+
+    if (repo_root / "android").is_dir():
+        if "assembleRelease" in content or ".apk" in content:
+            ok_list.append("Android project has native APK build step in release workflow")
+        else:
+            warnings_list.append("Android project release workflow missing native APK compilation")
+        android_issues = detect_android_release_issues(repo_root)
+        if android_issues:
+            for _, _, msg in android_issues:
+                warnings_list.append(msg)
+        else:
+            ok_list.append("Android release signing and manifest security settings look clean")
+
+    has_tauri_or_win_installer = (repo_root / "src-tauri").is_dir() or ".exe" in content or ".msi" in content
+    if has_tauri_or_win_installer:
+        has_exe = ".exe" in content
+        has_msi = ".msi" in content
+        if has_exe and has_msi:
+            ok_list.append("release.yml references both .exe and .msi installer artifacts")
+        else:
+            if not has_exe:
+                warnings_list.append("release.yml: missing .exe installer artifact pattern")
+            if not has_msi:
+                warnings_list.append("release.yml: missing .msi installer artifact pattern")
+
+    pkg_file = repo_root / "package.json"
+    if pkg_file.is_file():
+        try:
+            pkg_version = str(json.loads(pkg_file.read_text(encoding="utf-8")).get("version", "")).strip()
+        except (OSError, json.JSONDecodeError):
+            pkg_version = ""
+        if pkg_version:
+            ver_matches = re.findall(
+                r"[-_](\d+\.\d+\.\d+)(?:[-_][^/\s'\"]*)?\.(?:exe|msi|dmg|AppImage|apk)",
+                content,
+            )
+            mismatched = [ver for ver in ver_matches if ver != pkg_version]
+            if mismatched:
+                warnings_list.append(
+                    f"release.yml: hardcoded installer version {', '.join(sorted(set(mismatched)))} mismatches package.json {pkg_version}"
+                )
+            elif ver_matches:
+                ok_list.append(f"release.yml installer artifact version matches package.json ({pkg_version})")
+
+
+def check_ci_workflows(repo_root: Path) -> dict[str, Union[bool, list[str]]]:
+    workflow_dir = repo_root / ".github" / "workflows"
+    info: dict[str, Union[bool, list[str]]] = {
+        "has_workflows": workflow_dir.is_dir(),
+        "warnings": [],
+        "ok": []
+    }
+    if not workflow_dir.is_dir():
+        return info
+
+    pages_file = workflow_dir / "pages.yml"
+    if pages_file.is_file():
+        try:
+            content = pages_file.read_text(encoding="utf-8")
+            if "actions/configure-pages" in content and "enablement: true" in content:
+                info["ok"].append("GitHub Pages workflow configured with automated enablement")  # type: ignore[union-attr]
+            elif "actions/configure-pages" in content:
+                info["warnings"].append("pages.yml: actions/configure-pages missing 'enablement: true'")  # type: ignore[union-attr]
+        except OSError as err:
+            info["warnings"].append(f"Failed to read pages.yml: {err}")  # type: ignore[union-attr]
+
+    release_file = workflow_dir / "release.yml"
+    if release_file.is_file():
+        _inspect_release_workflow(repo_root, release_file, info)
+
+    return info
 
 
 def check_git_tracking(repo_root: Path) -> dict[str, Union[str, bool]]:
@@ -125,10 +225,12 @@ def inspect_mcp_config(mcp_path: Path) -> dict:
     return info
 
 
-def check_installed_skills(repo_root: Path, home: Path) -> dict[str, bool]:
+def check_installed_skills(repo_root: Path, home: Path, target_tool: str = "antigravity") -> dict[str, bool]:
     installed_status: dict[str, bool] = {}
     source_skills = repo_root / "skills"
-    dest_dir = home / ".gemini" / "antigravity" / "skills"
+    tool_dirs = get_tool_skill_dirs(home, repo_root, scope="global")
+    dest_candidates = tool_dirs.get(target_tool, [home / ".gemini" / "antigravity" / "skills"])
+    dest_dir = dest_candidates[0] if dest_candidates else (home / ".gemini" / "antigravity" / "skills")
 
     if not source_skills.is_dir():
         return installed_status
@@ -144,6 +246,17 @@ def check_installed_skills(repo_root: Path, home: Path) -> dict[str, bool]:
         installed_status[skill_name] = dest_skill_dir.is_dir() and dest_skill_md.is_file()
 
     return installed_status
+
+
+def check_tools_config(root: Path) -> dict[str, Union[str, bool, int, list[str], None]]:
+    cfg = load_tools_config(root)
+    return {
+        "has_config": cfg.config_path is not None,
+        "path": str(cfg.config_path) if cfg.config_path else "",
+        "level": cfg.linter_level,
+        "skill_targets": cfg.skill_targets,
+        "disabled_count": len(cfg.disabled_skills),
+    }
 
 
 def get_all_config_paths() -> list[tuple[str, Path]]:
@@ -188,8 +301,15 @@ def inspect_config_file(name: str, path: Path) -> dict:
         match = re.search(pattern, content, re.IGNORECASE)
         if match:
             info["has_linter_ref"] = True
-            ref_path = Path(match.group(1).strip())
+            raw_ref = match.group(1).strip()
+            home_str = str(get_user_home())
+            expanded_ref = raw_ref.replace("%USERPROFILE%", home_str).replace("$HOME", home_str)
+            ref_path = Path(expanded_ref).expanduser()
+            if not ref_path.is_absolute():
+                ref_path = (REPO_ROOT / ref_path).resolve()
             info["extracted_path"] = ref_path
+            if ref_path.resolve() != LINTER_SCRIPT.resolve():
+                info["has_stale_ref"] = True
             info["linter_path_valid"] = (
                 ref_path.is_file() and not info["has_unexpanded_tokens"] and not info["has_stale_ref"]
             )
@@ -206,17 +326,9 @@ def heal_config_file(info: dict) -> bool:
 
     try:
         content = path.read_text(encoding="utf-8", errors="replace")
-        target_linter_str = str(LINTER_SCRIPT)
-        if " " in target_linter_str:
-            target_linter_str = f'"{target_linter_str}"'
-
-        eng_str = str(ENGINEERING_PATH)
-        if " " in eng_str:
-            eng_str = f'"{eng_str}"'
-
-        py_str = str(PYTHON_RULES_PATH)
-        if " " in py_str:
-            py_str = f'"{py_str}"'
+        target_linter_str = format_command_path(LINTER_SCRIPT)
+        eng_str = format_command_path(ENGINEERING_PATH)
+        py_str = format_command_path(PYTHON_RULES_PATH)
 
         if shutil.which("uv"):
             new_cmd = f"uv run --no-project python {target_linter_str}"
@@ -370,7 +482,7 @@ def run_diagnostics(auto_heal: bool = False, clean_cache: bool = False, repair: 
     # 7. Check Configured MCP Servers
     print("\n[7] Configured Model Context Protocol (MCP) Servers:")
     mcp_configs = [
-        ("Claude Desktop", home / "AppData" / "Roaming" / "Claude" / "claude_desktop_config.json" if IS_WINDOWS else home / ".config" / "Claude" / "claude_desktop_config.json"),
+        ("Claude Desktop", home / "AppData" / "Roaming" / "Claude" / "claude_desktop_config.json" if IS_WINDOWS else home / ".config" / "Claude" / "claude_desktop_config.json"),  # noqa: 91
         ("Claude Code CLI", home / ".claude.json"),
         ("Cursor IDE", home / ".cursor" / "mcp.json"),
         (
@@ -408,7 +520,57 @@ def run_diagnostics(auto_heal: bool = False, clean_cache: bool = False, repair: 
         missing = [k for k, v in ui_status.items() if not v]
         print(f"  [WARN] Missing UI audit helper templates for: {', '.join(missing)}")
 
-    # 9. Healing action
+    # 9. Declarative Configuration
+    print("\n[9] Project Configuration (.aitools.toml & linter_custom.yaml):")
+    config_info = check_tools_config(REPO_ROOT)
+    if config_info["has_config"]:
+        print(f"  [OK] Detected: {config_info['path']} (level={config_info['level']})")
+    else:
+        print("  [INFO] No .aitools.toml detected; using built-in defaults (generate with 'aitools init-config').")
+    custom_cfg = load_custom_linter_config(target_root=REPO_ROOT)
+    if custom_cfg.loaded_files:
+        loaded_names = ", ".join(str(cfg_path) for cfg_path in custom_cfg.loaded_files)
+        rule_summary = (
+            f"remove={len(custom_cfg.remove)}, "
+            f"replace={len(custom_cfg.replace)}, "
+            f"allowed_vars={len(custom_cfg.allowed_vars)}, "
+            f"banned_vars={len(custom_cfg.banned_vars)}, "
+            f"banned_imports={len(custom_cfg.banned_imports)}, "
+            f"file_guards={len(custom_cfg.file_guards)}, "
+            f"ignore_paths={len(custom_cfg.ignore_paths)}, "
+            f"rule_overrides={len(custom_cfg.rule_overrides)}"
+        )
+        print(f"  [OK] Custom Linter YAML: {loaded_names} ({rule_summary})")
+    else:
+        print("  [INFO] No linter_custom.yaml active (copy linter_custom.example.yaml to customize rules).")
+
+    # 10. Unified CLI Status
+    print("\n[10] Unified CLI Status:")
+    aitools_bin = shutil.which("aitools") or shutil.which("aitools.cmd")
+    aiui_bin = shutil.which("aiui") or shutil.which("aiui.cmd")
+    if aitools_bin:
+        print(f"  [OK] 'aitools' found on PATH at: {aitools_bin}")
+    else:
+        print(f"  [INFO] 'aitools' wrapper available in: {REPO_ROOT / 'bin'}")
+    if aiui_bin:
+        print(f"  [OK] 'aiui' found on PATH at: {aiui_bin}")
+    else:
+        print(f"  [INFO] 'aiui' wrapper available in: {REPO_ROOT / 'bin'}")
+
+    # 11. CI/CD Workflow Health & Artifact Parity
+    print("\n[11] CI/CD Workflow Health & Artifact Parity:")
+    cwd_root = Path.cwd().resolve()
+    target_ci_root = cwd_root if (cwd_root / ".github" / "workflows").is_dir() else REPO_ROOT
+    ci_info = check_ci_workflows(target_ci_root)
+    if not ci_info["has_workflows"]:
+        print("  [INFO] No .github/workflows directory detected.")
+    else:
+        for ok_msg in ci_info["ok"]:
+            print(f"  [OK] {ok_msg}")
+        for warn_msg in ci_info["warnings"]:
+            print(f"  [WARN] {warn_msg}")
+
+    # 12. Healing action
     if needs_heal:
         print(f"\n[!] Found {len(needs_heal)} configuration(s) pointing to stale or missing linter paths.")
         if auto_heal:

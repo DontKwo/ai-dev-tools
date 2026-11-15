@@ -8,11 +8,12 @@ from scripts.ui_adapters.web import WebAdapter
 
 TAURI_CMD_RE = re.compile(r"#\[tauri::command\]\s*(?:async\s+)?fn\s+([a-zA-Z0-9_]+)")
 INVOKE_RE = re.compile(r"\binvoke\(\s*[\"']([^\"']+)[\"']")
+INCLUDE_DIST_RE = re.compile(r"include_str!\(\s*[\"']([^\"']*dist/[^\"']+)[\"']\s*\)")
 
 
 class TauriAdapter:
     name: str = "tauri"
-    extensions: tuple[str, ...] = (".rs", ".js", ".ts", ".html", ".tsx", ".jsx")
+    extensions: tuple[str, ...] = (".rs", ".js", ".ts", ".html", ".tsx", ".jsx", ".css", ".scss")
     _web = WebAdapter()
 
     def detect(self, root: Path) -> bool:
@@ -24,7 +25,7 @@ class TauriAdapter:
                 if "@tauri-apps/api" in deps:
                     return True
             except (json.JSONDecodeError, OSError):
-                pass
+                pass  # noqa: 10
         return (root / "src-tauri" / "Cargo.toml").is_file()
 
     def extract(self, path: Path, source: str) -> UiFileFacts:
@@ -68,3 +69,53 @@ class TauriAdapter:
             except OSError:
                 continue
         return sites
+
+    def stale_bundle_sites(self, root: Path) -> list[Site]:
+        sites: list[Site] = []
+        src_dir = root / "src" / "src"
+        tauri_src = root / "src-tauri" / "src"
+        if not src_dir.is_dir() or not tauri_src.is_dir():
+            return sites
+        src_mtimes = [
+            f.stat().st_mtime
+            for f in src_dir.rglob("*")
+            if f.is_file() and f.suffix in (".ts", ".tsx", ".js", ".jsx", ".css")
+        ]
+        if not src_mtimes:
+            return sites
+        newest_src = max(src_mtimes)
+        for rs_file in tauri_src.rglob("*.rs"):
+            try:
+                text = rs_file.read_text(encoding="utf-8", errors="ignore")
+            except OSError:
+                continue
+            for idx, line in enumerate(text.splitlines(), 1):
+                match = INCLUDE_DIST_RE.search(line)
+                if match:
+                    target = (rs_file.parent / match.group(1)).resolve()
+                    if target.is_file() and newest_src > target.stat().st_mtime + 2.0:
+                        sites.append(Site(file=rs_file, line=idx, code=87, message="Embedded dist asset is older than src/src"))
+        return sites
+
+    def desktop_lifecycle_sites(self, root: Path) -> list[Site]:
+        main_rs = root / "src-tauri" / "src" / "main.rs"
+        if not main_rs.is_file():
+            return []
+        try:
+            main_src = main_rs.read_text(encoding="utf-8", errors="ignore")
+        except OSError:
+            return []
+        if "TcpListener::bind" not in main_src or "--app=" not in main_src:
+            return []
+        combined = ""
+        for rs_file in (root / "src-tauri" / "src").rglob("*.rs"):
+            try:
+                combined += rs_file.read_text(encoding="utf-8", errors="ignore") + "\n"
+            except OSError:
+                continue
+        has_selftest = "--self-test" in combined
+        has_shutdown = ("/api/shutdown" in combined) or ("/api/heartbeat" in combined)
+        has_console_close = ("GetConsoleWindow" in combined) or ("windows_subsystem" in combined)
+        if not (has_selftest and has_shutdown and has_console_close):
+            return [Site(file=main_rs, line=1, code=88, message="Desktop server entrypoint missing lifecycle handlers")]
+        return []

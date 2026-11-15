@@ -23,7 +23,7 @@ Extract clean Markdown from diverse document formats using Python standard libra
 Convert an individual file or an entire directory of documents:
 
 ```bash
-uv run --no-project python scripts/to_markdown.py <file_or_dir> [--out <output_file>]
+aitools md <file_or_dir> [--out <output_file>]
 ```
 
 Options:

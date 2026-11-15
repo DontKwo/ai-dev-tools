@@ -1,0 +1,3 @@
+interface:
+  display_name: "Implicit Requirements"
+  short_description: "Infer and apply unstated quality, testing, error-handling, and performance re..."

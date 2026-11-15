@@ -86,3 +86,74 @@ def check_target_size(
         if w < min_width or h < min_height:
             violations.append(f"{elem.get('id')}: {w}x{h} < {min_width}x{min_height}")
     return violations
+
+
+def check_parent_clipping(
+    elements: list[dict[str, Any]],
+    tolerance_px: float = 1.0,
+    screen_id: str = "main",
+    matrix_cell: str = "default",
+) -> list[LayoutFindingRecord]:
+    findings: list[LayoutFindingRecord] = []
+    for elem in elements:
+        parent = elem.get("parent_rect")
+        if not isinstance(parent, dict):
+            continue
+        child_r = Rect(elem.get("x", 0.0), elem.get("y", 0.0), elem.get("width", 0.0), elem.get("height", 0.0))
+        parent_r = Rect(parent.get("x", 0.0), parent.get("y", 0.0), parent.get("width", 0.0), parent.get("height", 0.0))
+        clipped = (
+            child_r.x < parent_r.x - tolerance_px
+            or child_r.y < parent_r.y - tolerance_px
+            or child_r.x + child_r.width > parent_r.x + parent_r.width + tolerance_px
+            or child_r.y + child_r.height > parent_r.y + parent_r.height + tolerance_px
+        )
+        if clipped:
+            findings.append(
+                LayoutFindingRecord(
+                    type="clipping",
+                    screen_id=screen_id,
+                    matrix_cell=matrix_cell,
+                    element_ids=[str(elem.get("id"))],
+                    rectangles=[
+                        {"x": child_r.x, "y": child_r.y, "w": child_r.width, "h": child_r.height},
+                        {"x": parent_r.x, "y": parent_r.y, "w": parent_r.width, "h": parent_r.height},
+                    ],
+                )
+            )
+    return findings
+
+
+def check_viewport_overflow(
+    elements: list[dict[str, Any]],
+    viewport_width: float,
+    viewport_height: float,
+    tolerance_px: float = 1.0,
+    screen_id: str = "main",
+    matrix_cell: str = "default",
+) -> list[LayoutFindingRecord]:
+    findings: list[LayoutFindingRecord] = []
+    for elem in elements:
+        if not elem.get("visible", True):
+            continue
+        width = float(elem.get("width", 0.0))
+        height = float(elem.get("height", 0.0))
+        if width <= 0.0 or height <= 0.0:
+            continue
+        x_pos = float(elem.get("x", 0.0))
+        y_pos = float(elem.get("y", 0.0))
+        overflow_x = (x_pos + width) > (viewport_width + tolerance_px) or x_pos < -tolerance_px
+        overflow_y = (y_pos + height) > (viewport_height + tolerance_px) or y_pos < -tolerance_px
+        if overflow_x or overflow_y:
+            findings.append(
+                LayoutFindingRecord(
+                    type="viewport_overflow",
+                    screen_id=screen_id,
+                    matrix_cell=matrix_cell,
+                    element_ids=[str(elem.get("id"))],
+                    rectangles=[
+                        {"x": x_pos, "y": y_pos, "w": width, "h": height},
+                        {"x": 0.0, "y": 0.0, "w": viewport_width, "h": viewport_height},
+                    ],
+                )
+            )
+    return findings

@@ -33,12 +33,15 @@ ENV/
 env/
 
 # Claude runtime, session & private state
+.claude.json
 .credentials.json
 history.jsonl
 *.backup.*
 *.orig
-lint_report.txt
+lint_report*.txt
+scripts/lint_report*.txt
 .lint_cache.json
+.ruff_cache/
 *.log
 
 # IDE and OS files
@@ -47,6 +50,18 @@ lint_report.txt
 .DS_Store
 Thumbs.db
 # Checkpoints & Agent Local State
+.orchestrator_state.json
 .ai_checkpoints/
-.agents/
+.agents/hooks.json
+.agents/mcp_config.json
+.agents/rules/
+.agents/skills/
 .agent/
+.claude/
+.cursor/
+.cline/
+.codex/
+.windsurf/
+
+# User-specific linter customizations (copy from linter_custom.example.yaml)
+linter_custom.yaml
