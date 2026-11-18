@@ -1,6 +1,5 @@
 ---
 name: wait-what
-disable-model-invocation: true
 description: Re-pitch a dense technical explanation in ASD-STE100 Simplified Technical English using project Glossary terms.
 ---
 

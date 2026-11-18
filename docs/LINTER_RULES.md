@@ -155,6 +155,15 @@ This scans and reports every instance of `# noqa`, `// noqa`, `# type: ignore`, 
 | **89** | CI / Hygiene | Tag-only release workflow, static `'latest'` release tag, Android debug-signed or cleartext release, or superseded root scripts | Trigger releases on `push`/`pull_request`, publish unique semantic version tags, sign Android release builds properly with `usesCleartextTraffic="false"`, and remove obsolete scripts. |
 | **90** | Web / Units | Ambiguous mass unit (`tons`, `ton`, or bare `t`) in UI display | Display unambiguous units such as `lbs` or `kg`. |
 | **91** | Custom YAML | User-configured custom lint rule from `linter_custom.yaml` (`remove`, `replace`, `banned_imports`, or `file_guards`) | Remove or replace the flagged pattern, avoid the banned import, or satisfy the custom file guard rule. |
+| **92** | Security / Safety | Unsafe dynamic code execution (`eval`, `exec`, or `subprocess`/`os.system` with `shell=True` on dynamic strings) | Replace with safe parsers (`ast.literal_eval`) or structured argument lists without `shell=True`. |
+| **93** | Security / Deserialization | Insecure deserialization or unsafe YAML loading (`yaml.load()` without SafeLoader, `pickle.loads()`, `marshal.loads()`) | Use `yaml.safe_load()` or secure data formats (JSON). |
+| **94** | Security / SQL | Raw SQL query construction via string formatting (f-string, `%`, or `.format()` inside `.execute()`) | Use parameterized queries with DB-API bind parameters. |
+| **95** | Security / Credentials | Hardcoded secret or credential token (API key, auth token, or private key) | Load secrets from environment variables or a secrets manager. |
+| **96** | Testing / Integrity | Phantom or tautological test assertion (`assert True`, `assert 1 == 1`, or empty test function body) | Write genuine behavioral assertions that verify public seams and can fail if logic breaks. |
+| **97** | AI Artifacts | AI hallucinated placeholder token (`your_api_key_here`, `todo_insert_key`, `fake_token`, `sk-placeholder`) | Replace fake placeholders with genuine configuration or test fixtures. |
+| **98** | Web / A11y | Accessibility or UI structure hazard (`<img>` missing `alt`, `<button>` missing `type`, `.map()` missing `key`) | Provide accessible labels, explicit button types (`type="button"`), and unique key props. |
+| **99** | AI Shortcuts | AI deferred stub in production code (`# deferred: implement`, `# AI generated stub`, `# Implement later`) | Complete the production implementation. Avoid placeholder comments. <!-- noqa: 24 --> |
+| **100** | Code Quality | Hallucinated or invalid standard library import (non-existent module or incorrect type import) | Use canonical Python standard library modules and correct typing primitives (`str` instead of `String`). |
 
 ---
 

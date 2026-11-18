@@ -1,6 +1,5 @@
 ---
 name: to-tickets
-disable-model-invocation: true
 description: Slice an approved spec or plan into vertical tracer-bullet tickets with explicit Blocked by edges.
 ---
 

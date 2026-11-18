@@ -1,6 +1,5 @@
 ---
 name: triage
-disable-model-invocation: true
 description: Triage incoming issues or PRs against out-of-scope rules and repository state into actionable labels and behavioral Agent Briefs.
 ---
 

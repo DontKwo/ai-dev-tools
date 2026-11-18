@@ -1,6 +1,5 @@
 ---
 name: session-wrap-up
-disable-model-invocation: true
 description: Run a 7-lever environment retrospective and consolidate durable memory updates as a separate commit.
 ---
 

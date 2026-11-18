@@ -1,6 +1,5 @@
 ---
 name: to-spec
-disable-model-invocation: true
 description: Synthesize settled conversation decisions into a crisp specification with agreed public test seams.
 ---
 

@@ -1,6 +1,6 @@
 {
   "name": "ai-dev-tools",
-  "description": "Deterministic developer tools, 91-rule code and style linter, MCP server, and engineering skills for AI coding agents.",
+  "description": "Deterministic developer tools, 100-rule code and style linter, MCP server, and engineering skills for AI coding agents.",
   "version": "0.2.0",
   "skills": [
     "./skills/ask-aitools",
@@ -21,9 +21,13 @@
     "./skills/implicit-requirements",
     "./skills/improve-codebase-architecture",
     "./skills/lint-and-fix",
+    "./skills/ponytail",
     "./skills/prototype",
+    "./skills/react-astryx",
     "./skills/research",
+    "./skills/rust-anything",
     "./skills/secret-sanitizer",
+    "./skills/security-audit",
     "./skills/session-wrap-up",
     "./skills/setup-ai-dev-tools",
     "./skills/smart-test",

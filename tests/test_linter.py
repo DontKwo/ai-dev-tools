@@ -181,6 +181,42 @@ class TestClaudemdLinter(unittest.TestCase):
         codes = self._scan_snippet(code)
         self.assertIn(45, codes)
 
+    def test_rule_92_unsafe_eval(self) -> None:
+        codes = self._scan_snippet("result = eval('2 + 2')\n")
+        self.assertIn(92, codes)
+
+    def test_rule_93_unsafe_yaml(self) -> None:
+        codes = self._scan_snippet("import yaml\nyaml.load('key: val')\n")
+        self.assertIn(93, codes)
+
+    def test_rule_94_sql_injection(self) -> None:
+        codes = self._scan_snippet("cursor.execute(f'SELECT * FROM users WHERE id = {uid}')\n")
+        self.assertIn(94, codes)
+
+    def test_rule_95_secret_credential(self) -> None:
+        codes = self._scan_snippet("token = 'ghp_123456789012345678901234567890123456'\n")
+        self.assertIn(95, codes)
+
+    def test_rule_96_tautological_assert(self) -> None:
+        codes = self._scan_snippet("def run():\n    assert True\n")
+        self.assertIn(96, codes)
+
+    def test_rule_97_placeholder_token(self) -> None:
+        codes = self._scan_snippet("key = 'your_api_key_here'\n")
+        self.assertIn(97, codes)
+
+    def test_rule_98_web_accessibility(self) -> None:
+        codes = self._scan_snippet('<img src="avatar.png">\n', suffix=".jsx")
+        self.assertIn(98, codes)
+
+    def test_rule_99_ai_stub(self) -> None:
+        codes = self._scan_snippet("# AI generated placeholder\n")
+        self.assertIn(99, codes)
+
+    def test_rule_100_hallucinated_import(self) -> None:
+        codes = self._scan_snippet("from typing import String\n")
+        self.assertIn(100, codes)
+
     def test_cli_levels_and_filters(self) -> None:
         target, level, skip, only, flags = parse_cli_args(["src", "--level", "standard", "--skip", "1,2", "--no-ruff"])
         self.assertEqual(target, "src")

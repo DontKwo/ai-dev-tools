@@ -1,6 +1,5 @@
 ---
 name: ask-aitools
-disable-model-invocation: true
 description: Workflow router and skill recommender for choosing the right ai-dev-tools workflow and phase transition.
 ---
 

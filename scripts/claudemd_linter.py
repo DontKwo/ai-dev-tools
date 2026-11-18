@@ -130,6 +130,15 @@ LEGEND = {
     89: "Release workflow triggers only on tags without push/pull_request coverage, uses a static 'latest' tag_name, signs Android release with debug key or allows cleartext traffic, or leaves superseded root scripts.",
     90: "Ambiguous mass unit ('tons', 'ton', or bare 't') in UI display. Use explicit 'lbs' or 'kg'.",
     91: "Custom user linter rule violation (banned term/pattern in linter_custom.yaml). Remove or replace the flagged pattern.",
+    92: "Unsafe dynamic code execution (eval, exec, or shell=True with formatted string). Use safe AST evaluation or shlex quoting.",
+    93: "Insecure deserialization or YAML loading (yaml.load without SafeLoader or pickle.loads). Use yaml.safe_load or safe formats.",
+    94: "SQL injection hazard (raw string interpolation or f-string in SQL query). Use parameterized query execution.",
+    95: "Hardcoded secret or credential token (API key, token, or private key). Load credentials from environment variables.",
+    96: "Phantom or tautological test assertion (assert True, assert 1 == 1, or empty test body). Write verifiable assertions.",
+    97: "AI hallucinated placeholder token (your_api_key_here, todo_insert_key, fake_token). Replace with genuine config.",
+    98: "Accessibility or UI structure hazard in web component (img without alt, button without type, map without key).",
+    99: "AI deferred stub in production code (TODO: implement, AI placeholder, or incomplete implementation).",
+    100: "Hallucinated or invalid standard library import (non-existent module or incorrect type import).",
 }
 
 TOOLTIP_TARGET_CLASSES = {
@@ -395,6 +404,7 @@ LEVEL_RULES: dict[str, set[int]] = {
         1, 2, 3, 4, 5, 6, 7, 8, 9, 10,
         14, 15, 16, 17, 18, 19, 22, 24, 27,
         36, 37, 40, 41, 44, 80, 91,
+        92, 93, 94, 95, 96, 97, 99, 100,
     },
     "strict": {
         1, 2, 3, 4, 5, 6, 7, 8, 9, 10,
@@ -402,8 +412,9 @@ LEVEL_RULES: dict[str, set[int]] = {
         36, 37, 38, 39, 40, 41, 42, 43, 44, 45,
         46, 47, 48, 49, 54, 80, 81, 82, 83,
         84, 85, 86, 87, 88, 89, 90, 91,
+        92, 93, 94, 95, 96, 97, 98, 99, 100,
     },
-    "full": set(range(1, 92)),
+    "full": set(range(1, 101)),
 }
 
 HEADING_RE = re.compile(r"^#{1,6}\s+(.+)$")
@@ -425,6 +436,37 @@ DEBUG_PATTERNS = [
     re.compile(r"\b(?:println!|eprintln!|dbg!)\s*\("),       # Rust
     re.compile(r"\bstd::cout\s*<<"),                        # C++
 ]
+
+# Security credential patterns (Code 95)
+SECRET_PATTERNS = [
+    re.compile(r"\b(?:ghp|gho|ghu|ghs|ghr)_[A-Za-z0-9_]{36,}\b"),
+    re.compile(r"\bsk-(?:proj-|live-)?[a-zA-Z0-9_-]{24,}\b"),
+    re.compile(r"\bAKIA[0-9A-Z]{16}\b"),
+    re.compile(r"-----BEGIN\s+(?:RSA|DSA|EC|OPENSSH)?\s*PRIVATE\s+KEY-----"),
+]
+
+# AI placeholder and stub patterns (Codes 97 & 99)
+AI_PLACEHOLDER_RE = re.compile(
+    r"\b(?:your[_-]api[_-]key[_-]here|insert[_-]api[_-]key|todo[_-]insert|"
+    r"your[_-]token[_-]here|fake[_-]token|sk-placeholder)\b",
+    re.IGNORECASE,
+)
+AI_STUB_RE = re.compile(
+    r"(?:#|//)\s*(?:ai(?:\s+generated)?\s+placeholder|will\s+implement\s+later|"
+    r"todo:?\s*implement\s+(?:this|later)|placeholder\s+for\s+future)\b",
+    re.IGNORECASE,
+)
+
+# Web and JSX accessibility patterns (Code 98)
+IMG_MISSING_ALT_RE = re.compile(r"<img\b(?![^>]*\balt=)[^>]*>", re.IGNORECASE)
+BUTTON_MISSING_TYPE_RE = re.compile(r"<button\b(?![^>]*\btype=)[^>]*>", re.IGNORECASE)
+
+# Known hallucinated or invalid stdlib imports (Code 100)
+HALLUCINATED_IMPORTS: dict[str, set[str]] = {
+    "typing": {"String", "Integer", "Boolean", "Float", "Array", "Map", "Number"},
+    "asyncio": {"coroutine"},
+    "urllib": {"request_handler"},
+}
 
 
 def noqa_codes(line: str) -> set[int] | str | None:
@@ -449,7 +491,7 @@ def scan_text_line(path: Path, lineno: int, line: str, violations: list[tuple[Pa
         return
 
     # Linter self-hosting: do not flag the linter's own pattern definitions
-    if path.name == "claudemd_linter.py" and lineno <= 385:
+    if path.name == "claudemd_linter.py" and lineno <= 500:
         return
 
     # Spell checker dictionary definitions legitimately define typo mappings
@@ -512,6 +554,30 @@ def scan_text_line(path: Path, lineno: int, line: str, violations: list[tuple[Pa
             if pattern.search(line) and not suppressed(line, 25):
                 violations.append((path, lineno, 25))
                 break
+
+    # Rule 95: Hardcoded credentials or tokens
+    if path.suffix not in (".md", ".txt", ".rst") and "example" not in path.name.lower():
+        for pattern in SECRET_PATTERNS:
+            if pattern.search(line) and not suppressed(line, 95):
+                violations.append((path, lineno, 95))
+                break
+
+    # Rule 97: AI hallucinated placeholders
+    if "example" not in path.name.lower() and path.suffix not in (".md", ".txt", ".rst"):
+        if AI_PLACEHOLDER_RE.search(line) and not suppressed(line, 97):
+            violations.append((path, lineno, 97))
+
+    # Rule 98: Web / JSX accessibility
+    if path.suffix in (".jsx", ".tsx", ".html", ".vue", ".svelte"):
+        if IMG_MISSING_ALT_RE.search(line) and not suppressed(line, 98):
+            violations.append((path, lineno, 98))
+        if BUTTON_MISSING_TYPE_RE.search(line) and not suppressed(line, 98):
+            violations.append((path, lineno, 98))
+
+    # Rule 99: AI deferred stubs in production code
+    if path.suffix not in (".md", ".txt", ".rst") and "tests" not in path.parts and not path.name.startswith("test_"):
+        if AI_STUB_RE.search(line) and not suppressed(line, 99):
+            violations.append((path, lineno, 99))
 
 
 def scan_markdown_headings(path: Path, lines: list[str], violations: list[tuple[Path, int, int]]) -> None:
@@ -769,6 +835,11 @@ def _check_ast_import_from(node: ast.ImportFrom, path: Path, line: str, lines: l
         if any(alias.name in ("QSpinBox", "QDoubleSpinBox") for alias in node.names):
             if not suppressed(line, 31):
                 violations.append((path, node.lineno, 31))
+    if node.module in HALLUCINATED_IMPORTS:
+        for alias in node.names:
+            if alias.name in HALLUCINATED_IMPORTS[node.module]:
+                if not suppressed(line, 100):
+                    violations.append((path, node.lineno, 100))
 
 def _check_ast_except_handler(node: ast.ExceptHandler, path: Path, line: str, lines: list[str], violations: list[tuple[Path, int, int]]) -> None:
     if node.type is None and not suppressed(line, 9):
@@ -789,6 +860,9 @@ def _check_ast_function_def(node: ast.FunctionDef, path: Path, line: str, lines:
     pass_line = lines[node.body[0].lineno - 1] if node.body and node.body[0].lineno - 1 < len(lines) else ""
     if len(node.body) == 1 and isinstance(node.body[0], ast.Pass) and not suppressed(line, 10) and not suppressed(pass_line, 10):
         violations.append((path, node.lineno, 10))
+    if node.name.startswith("test_") and ("test" in path.name.lower() or "tests" in path.parts):
+        if len(node.body) == 1 and isinstance(node.body[0], ast.Pass) and not suppressed(line, 96):
+            violations.append((path, node.lineno, 96))
     missing = any(param_arg.annotation is None for param_arg in node.args.args if param_arg.arg != "self")
     if node.returns is None:
         missing = True
@@ -891,6 +965,51 @@ def _check_ast_call(node: ast.Call, path: Path, line: str, lines: list[str], vio
         if node.args and isinstance(node.args[0], ast.Constant) and isinstance(node.args[0].value, int):
             if node.args[0].value < SPINBOX_MAX_DECIMALS:
                 violations.append((path, node.lineno, 34))
+    is_test_file = "tests" in path.parts or path.name.startswith("test_")
+    if not is_test_file:
+        if isinstance(node.func, ast.Name) and node.func.id in ("eval", "exec") and not suppressed(line, 92):
+            violations.append((path, node.lineno, 92))
+        elif isinstance(node.func, ast.Attribute) and node.func.attr == "system" and getattr(node.func.value, "id", None) == "os":
+            if not suppressed(line, 92):
+                violations.append((path, node.lineno, 92))
+        elif isinstance(node.func, ast.Attribute) and getattr(node.func.value, "id", None) == "subprocess":
+            for kw in node.keywords:
+                if kw.arg == "shell" and isinstance(kw.value, ast.Constant) and kw.value.value is True:
+                    if node.args and not isinstance(node.args[0], ast.Constant):
+                        if not suppressed(line, 92):
+                            violations.append((path, node.lineno, 92))
+        if isinstance(node.func, ast.Attribute) and node.func.attr == "load" and getattr(node.func.value, "id", None) == "yaml":
+            has_safe = any(
+                kw.arg == "Loader" and (
+                    (isinstance(kw.value, ast.Attribute) and kw.value.attr in ("SafeLoader", "CSafeLoader"))
+                    or (isinstance(kw.value, ast.Name) and kw.value.id in ("SafeLoader", "CSafeLoader"))
+                ) for kw in node.keywords
+            )
+            if not has_safe and not suppressed(line, 93):
+                violations.append((path, node.lineno, 93))
+        elif isinstance(node.func, ast.Attribute) and node.func.attr in ("loads", "load") and getattr(node.func.value, "id", None) in ("pickle", "_pickle", "marshal"):
+            if not suppressed(line, 93):
+                violations.append((path, node.lineno, 93))
+        if isinstance(node.func, ast.Attribute) and node.func.attr in ("execute", "executemany"):
+            if node.args:
+                first = node.args[0]
+                is_sql_target = (
+                    "sql" in path.name.lower() or "db" in path.name.lower()
+                    or getattr(node.func.value, "id", None) in ("cursor", "cur", "db", "conn", "session")
+                )
+                if is_sql_target and isinstance(first, (ast.JoinedStr, ast.BinOp)):
+                    if not suppressed(line, 94):
+                        violations.append((path, node.lineno, 94))
+
+def _check_ast_assert(node: ast.Assert, path: Path, line: str, violations: list[tuple[Path, int, int]]) -> None:
+    if isinstance(node.test, ast.Constant) and node.test.value is True:
+        if not suppressed(line, 96):
+            violations.append((path, node.lineno, 96))
+    elif isinstance(node.test, ast.Compare):
+        if (isinstance(node.test.left, ast.Constant) and len(node.test.comparators) == 1
+                and isinstance(node.test.comparators[0], ast.Constant)):
+            if node.test.left.value == node.test.comparators[0].value and not suppressed(line, 96):
+                violations.append((path, node.lineno, 96))
 
 def _check_ast_constant(node: ast.Constant, path: Path, line: str, lines: list[str], violations: list[tuple[Path, int, int]]) -> None:
     if isinstance(node.value, str):
@@ -987,6 +1106,8 @@ def scan_python_ast(
             _check_ast_try(node, path, line, lines, violations)
         elif isinstance(node, ast.Dict):
             _check_ast_dict(node, path, line, lines, violations)
+        elif isinstance(node, ast.Assert):
+            _check_ast_assert(node, path, line, violations)
 
 def _base_name(node: ast.AST | None) -> str | None:
     if isinstance(node, ast.Name):

@@ -1,0 +1,25 @@
+{
+  "name": "astryx-react19-starter",
+  "version": "1.0.0",
+  "description": "Meta Astryx React 19 Starter Template",
+  "dependencies": {
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "@stylexjs/stylex": "^0.9.0"
+  },
+  "devDependencies": {
+    "@stylexjs/babel-plugin": "^0.9.0",
+    "vite": "^6.0.0",
+    "typescript": "^5.7.0"
+  },
+  "astryxConfig": {
+    "theme": {
+      "primary": "var(--astryx-primary)",
+      "background": "var(--astryx-bg)",
+      "surface": "var(--astryx-surface)",
+      "text": "var(--astryx-text)",
+      "contrastRatio": "4.5:1"
+    },
+    "templates": ["dashboard", "split-view", "settings"]
+  }
+}

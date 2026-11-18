@@ -1,6 +1,5 @@
 ---
 name: handoff
-disable-model-invocation: true
 description: Package current goal, locked decisions, open questions, and clean file pointers into a portable redacted handoff Markdown file.
 ---
 

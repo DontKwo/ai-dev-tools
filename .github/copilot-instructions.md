@@ -6,8 +6,16 @@
 - Every function signature must have explicit parameter and return type annotations.
 - Keep comments <= 2 lines. State only what code does now. Use `# long-comment-ok` only when multi-line explanation is strictly necessary (such as complex algorithms or mathematical derivations).
 
-# Architectural Reorganization & Refactoring
-- If you believe a repository, folder, or file should be reorganized, renamed, modularized, or rescoped, present the suggestion to the user with a clear architectural rationale and wait for explicit approval before proceeding.
+# Proactive Architectural Overhauls
+- If code becomes unsustainable, propose a modular overhaul (decomposing monolithic files > 400 lines, deduplicating logic, untangling dependencies).
+- Formulate the proposal via `grill-user` with target architecture and execute in verifiable steps using `workspace-checkpoint` and `tdd` upon approval.
+
+# Autonomous Skill Selection & Execution
+- Never require user invocation of skills; casual prompts receive full power-user rigor.
+- Automatically activate appropriate skills: `grill-user`/`domain-modeling` (ambiguity), `tdd`/`smart-test`/`diagnosing-bugs` (features/fixes), `prototype`/`react-astryx`/`ux-audit` (UI), `workspace-checkpoint`/`codebase-design` (refactoring), `lint-and-fix`/`definition-of-done` (verification).
+
+# Frontend UI Design
+- When building frontends from scratch, evaluate React. If chosen, use Meta Astryx templates for WCAG AA components and theme tokens; write custom CSS only for domain styling.
 
 # Python Execution
 - Run Python commands through uv: `uv run --no-project --python "<venv_python>" <command>`.
@@ -38,10 +46,11 @@
 - Never stop at the literal task if related defects of the same kind are obvious.
 
 # Testing Standard
+- Always create and maintain comprehensive automated tests for every module, function, and UI control in the repository.
 - List failure modes and cover each with a test or state the mitigation before declaring done.
 - Prefer generated tests (table-driven, property-based, model-based random sequences) to hand-written happy paths.
 - For user-facing apps, test every UI action against every supported kind of data.
-- Never weaken a test to make it pass.
+- Never weaken a test to make it pass, and never delete existing tests.
 - Report exactly what ran and what did not run via the `exhaustive-testing` skill.
 
 # UI/UX Standard
@@ -70,6 +79,11 @@
 - PR body must contain: Summary, Assumptions, How verified, Not verified, Risks, Follow-ups.
 - Local workstation behavior remains exactly as specified today.
 
+# Git Discipline & CI/CD Repair
+- Use `git commit --amend --no-edit` and `git push --force-with-lease` for fixes and refinements; new commits are for new features or bug fixes.
+- When pushing to remote repositories, poll CI/CD status. If jobs fail, diagnose, fix locally, verify with tests/linter, and update using `--amend` and `--force-with-lease` until green.
+- Auto-scaffold standard CI/CD workflows in new repos; suggest CI/CD in existing repos without forcing.
+
 # After Changes
 - Reply with a brief list: what changed + confirmation it was tested (or state explicitly that it was not tested).
   Example: "Fixed off-by-one in parser. Added retry logic. All 27 unit tests passing."
@@ -93,4 +107,9 @@
   - Fine-grained overrides: `--skip <codes>` or `--only <codes>` for targeted checks.
 - When violations occur, inspect the report file path printed in terminal output. Fix every violation and re-run until the output reads "None. Lint clean." (the report file is deleted automatically once clean).
 - `# noqa` / `# noqa: <codes>` suppresses checks; use only when code is genuinely correct as-is. For third-party, vendor, or generated code where modifications would break functionality, add targeted inline `# noqa: <code>` comments.
+
+# Linter Security & Integrity
+- AI agents are strictly forbidden from reading, inspecting, or editing `scripts/claudemd_linter.py`, `scripts/custom_linter.py`, or tampering with lint reports and cache files.
+- The only exception is if the user explicitly instructs the AI to view or modify the linter script.
+- Treat the linter as an external black-box verifier: run the command, read the output codes and line numbers, consult `docs/LINTER_RULES.md` for rule descriptions if needed, and fix the underlying code to satisfy the linter without attempting to weaken, circumvent, or suppress checks.
 <!-- END AI-DEV-TOOLS -->

@@ -1,5 +1,3 @@
 interface:
   display_name: "Triage"
-  short_description: "Triage incoming issues or PRs against out-of-scope rules and repository state..."
-policy:
-  allow_implicit_invocation: false
+  short_description: "Triage incoming issues or PRs against out-of-scope rules and repository state i..."

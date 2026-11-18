@@ -1,6 +1,5 @@
 ---
 name: setup-ai-dev-tools
-disable-model-invocation: true
 description: Interactive repository onboarding wizard for configuring linter_custom.yaml, GLOSSARY.md, issue tracker docs, and multi-editor sync.
 ---
 

@@ -1,6 +1,5 @@
 ---
 name: wayfinder
-disable-model-invocation: true
 description: Navigate complex multi-session epics using a living decision DAG of small Research, Prototype, Grilling, and Task steps.
 ---
 

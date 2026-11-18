@@ -1,6 +1,5 @@
 ---
 name: implement
-disable-model-invocation: true
 description: Execute an approved spec or ticket end-to-end with checkpoints, TDD cycles, strict linting, and dual-axis review.
 ---
 

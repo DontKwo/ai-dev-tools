@@ -1,5 +1,9 @@
 # ai-dev-tools
 
+> **Make your AI agents the best they can possibly be: self-verifying, token-efficient, disciplined, and engineered to go above and beyond without regressions.**
+>
+> We do not simply trust what the AI claims to have done, nor rely on it to follow natural language prompts or instruction files. The linter and automated verification test suites programmatically enforce code quality, catch hallucinations, prevent security hazards, and verify correctness before code can ship.
+
 Portable environment configuration and automated tooling to configure any machine (Windows, Linux, or macOS) across AI developer tools (Claude Code, Cursor, Cline, Roo Code, Google Antigravity, OpenAI Codex, Windsurf, GitHub Copilot, Aider) with unified style rules, an AST linter, auto-fixers, context optimizers, and a native MCP server.
 
 ---
@@ -199,6 +203,21 @@ uv run --no-project python scripts/claudemd_linter.py . --level strict
 - [docs/FAQ.md](docs/FAQ.md): Questions on lint levels, AST rules, and rule suppressions.
 - [docs/LINTER_RULES.md](docs/LINTER_RULES.md): Specifications for linter rules (91 rules across AST, UI, custom config, and style), suppression comments, and verification levels.
 - [docs/SETUP_GUIDE.md](docs/SETUP_GUIDE.md): Step-by-step setup walkthrough across Windows, macOS, and Linux.
+
+## Acknowledgements & Third-Party Credits
+
+This project builds on, adapts, or preserves work from the open-source community:
+- [Matt Pocock (`mattpocock/skills`)](https://github.com/mattpocock/skills) for workflow skills and prompt engineering routines.
+- [Jesse Vincent (`obra/superpowers`)](https://github.com/obra/superpowers) for agentic software engineering discipline and TDD methodology.
+- [Dietrich Gebert (`DietrichGebert/ponytail`)](https://github.com/DietrichGebert/ponytail) for the minimalist senior developer decision ladder.
+- [Meta Platforms, Inc. (`meta/astryx`)](https://github.com/meta/astryx) for accessible React 19 UI component templates and design token schemas.
+- [RTK Authors (`rtk-ai/rtk`)](https://github.com/rtk-ai/rtk) for terminal token compression patterns.
+- [Tirth Patel (`tirth8205/code-review-graph`)](https://github.com/tirth8205/code-review-graph) for AST blast-radius analysis and code graph modeling.
+- [Mert Köseoğlu (`mksglu/context-mode`)](https://github.com/mksglu/context-mode) for sandbox execution and SQLite FTS5 search patterns.
+- [Erkam Yaman (`erkamyaman/rust-anything`)](https://github.com/erkamyaman/rust-anything) for behavior recording and migration replay patterns.
+- [elementalsouls (`elementalsouls/Claude-BugHunter`)](https://github.com/elementalsouls/Claude-BugHunter) for defensive security audit checklists.
+
+See [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) for full license details.
 
 ## Developer Tools Disclaimer
 DEVELOPER TOOLS DISCLAIMER: ai-dev-tools provides automated AST analysis, code inspection, and refactoring scripts. The software is provided AS IS without warranty of any kind. The author assumes no liability for code modifications, data loss, or build errors resulting from automated tool execution.

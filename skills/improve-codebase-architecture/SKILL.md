@@ -1,6 +1,5 @@
 ---
 name: improve-codebase-architecture
-disable-model-invocation: true
 description: Audit coupling hotspots, generate a self-contained HTML architecture report, and propose deep-module refactor candidates.
 ---
 
