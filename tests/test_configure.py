@@ -10,12 +10,17 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO_ROOT / "scripts"))
 
 from configure import (
+    PlannedAction,
+    ask_user_plan_confirmation,
     build_instructions,
     configure_mcp_servers,
     configure_skills,
+    create_setup_plan,
+    execute_setup_plan,
     get_tool_definitions,
     install_file,
     remove_tool_targets,
+    render_plan_summary,
 )
 
 
@@ -224,6 +229,151 @@ class TestConfigure(unittest.TestCase):
         text = claude_md.read_text(encoding="utf-8")
         self.assertIn("# Existing Custom Rules", text)
         self.assertIn("# Managed", text)
+
+    def test_create_setup_plan(self) -> None:
+        with patch("configure.get_user_home", return_value=self.mock_home):
+            plan = create_setup_plan(
+                repo_root=self.mock_repo,
+                selected_tools=["claude"],
+                scope="workspace",
+                workspace=self.mock_ws,
+                setup_rules=True,
+                setup_mcp=True,
+                setup_skills=False,
+                init_custom_config=False,
+            )
+        self.assertTrue(len(plan) >= 2)
+        rule_actions = [item for item in plan if item.category == "rule"]
+        mcp_actions = [item for item in plan if item.category == "mcp"]
+        self.assertEqual(len(rule_actions), 1)
+        self.assertEqual(rule_actions[0].target_path, self.mock_ws / "CLAUDE.md")
+        self.assertEqual(rule_actions[0].action_type, "create")
+        self.assertEqual(len(mcp_actions), 1)
+        self.assertEqual(mcp_actions[0].target_path, self.mock_ws / ".claude.json")
+
+    def test_render_plan_summary(self) -> None:
+        plan = [
+            PlannedAction(
+                category="rule",
+                title="Claude Rules",
+                description="Create rules at CLAUDE.md",
+                target_path=self.mock_ws / "CLAUDE.md",
+                action_type="create",
+            ),
+            PlannedAction(
+                category="mcp",
+                title="Claude Desktop MCP",
+                description="Register MCP server in config",
+                target_path=self.mock_home / "claude.json",
+                action_type="register",
+            ),
+        ]
+        summary = render_plan_summary(plan)
+        self.assertIn("AI-DEV-TOOLS SETUP PLAN", summary)
+        self.assertIn("Claude Rules", summary)
+        self.assertIn("Claude Desktop MCP", summary)
+
+    def test_ask_user_plan_confirmation_approve_all(self) -> None:
+        plan = [
+            PlannedAction(
+                category="rule",
+                title="Claude Rules",
+                description="Create rules",
+                target_path=self.mock_ws / "CLAUDE.md",
+                action_type="create",
+            ),
+        ]
+        with patch("builtins.input", return_value="A"):
+            approved = ask_user_plan_confirmation(plan, self.mock_ws)
+        self.assertEqual(len(approved), 1)
+        self.assertEqual(approved[0].title, "Claude Rules")
+
+    def test_ask_user_plan_confirmation_cancel(self) -> None:
+        plan = [
+            PlannedAction(
+                category="rule",
+                title="Claude Rules",
+                description="Create rules",
+                target_path=self.mock_ws / "CLAUDE.md",
+                action_type="create",
+            ),
+        ]
+        with patch("builtins.input", return_value="C"):
+            approved = ask_user_plan_confirmation(plan, self.mock_ws)
+        self.assertEqual(approved, [])
+
+    def test_ask_user_plan_confirmation_individual_approval(self) -> None:
+        item_one = PlannedAction(
+            category="rule",
+            title="Claude Rules",
+            description="Create rules",
+            target_path=self.mock_ws / "CLAUDE.md",
+            action_type="create",
+        )
+        item_two = PlannedAction(
+            category="mcp",
+            title="MCP Config",
+            description="Register MCP",
+            target_path=self.mock_ws / ".claude.json",
+            action_type="register",
+        )
+        inputs = ["i", "y", "n", "y"]
+        with patch("builtins.input", side_effect=inputs):
+            approved = ask_user_plan_confirmation([item_one, item_two], self.mock_ws)
+        self.assertEqual(len(approved), 1)
+        self.assertEqual(approved[0].title, "Claude Rules")
+
+    def test_execute_setup_plan(self) -> None:
+        target_rule = self.mock_ws / "CLAUDE.md"
+        plan = [
+            PlannedAction(
+                category="rule",
+                title="Claude Rules",
+                description="Create rules",
+                target_path=target_rule,
+                action_type="create",
+                metadata={"frontmatter": "", "default_action": "append"},
+            ),
+        ]
+        with patch("configure.calc_linter_command", return_value="aitools lint"):
+            execute_setup_plan(plan, self.mock_ws, action="append", dry_run=False)
+        self.assertTrue(target_rule.exists())
+        self.assertIn("<!-- BEGIN AI-DEV-TOOLS -->", target_rule.read_text(encoding="utf-8"))
+
+    def test_create_setup_plan_with_linter_profile(self) -> None:
+        plan = create_setup_plan(
+            repo_root=self.mock_repo,
+            selected_tools=["claude"],
+            scope="workspace",
+            workspace=self.mock_ws,
+            setup_rules=False,
+            setup_mcp=False,
+            setup_skills=False,
+            init_custom_config=False,
+            linter_profile="safe",
+            linter_disable=[1, 5],
+        )
+        self.assertEqual(len(plan), 1)
+        self.assertEqual(plan[0].category, "config")
+        self.assertEqual(plan[0].metadata.get("profile"), "safe")
+        self.assertEqual(plan[0].metadata.get("disable"), [1, 5])
+
+    def test_execute_setup_plan_config_profile(self) -> None:
+        target_cfg = self.mock_ws / ".aitools.toml"
+        plan = [
+            PlannedAction(
+                category="config",
+                title="Linter Profile (Safe)",
+                description="Configure profile",
+                target_path=target_cfg,
+                action_type="create",
+                metadata={"profile": "safe", "disable": [38]},
+            )
+        ]
+        execute_setup_plan(plan, self.mock_ws, action="append", dry_run=False)
+        self.assertTrue(target_cfg.is_file())
+        content = target_cfg.read_text(encoding="utf-8")
+        self.assertIn('profile = "safe"', content)
 
 
 if __name__ == "__main__":

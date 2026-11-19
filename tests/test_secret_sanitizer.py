@@ -268,6 +268,28 @@ class TestSecretSanitizerCLI(unittest.TestCase):
         output = stdout_stream.getvalue()
         self.assertIn("SECURITY WARNING", output)
 
+    def test_cli_git_diff_clean(self) -> None:
+        stdout_stream = io.StringIO()
+        with patch("scripts.secret_sanitizer.get_git_files", return_value=[]):
+            with patch("sys.stdout", stdout_stream):
+                with patch("sys.argv", ["secret_sanitizer.py", "--diff"]):
+                    with self.assertRaises(SystemExit) as exit_context:
+                        secret_sanitizer.main()
+                    self.assertEqual(exit_context.exception.code, 0)
+        self.assertIn("[OK] Clean.", stdout_stream.getvalue())
+
+    def test_cli_git_staged_with_leaks(self) -> None:
+        leak_file = self.temp_dir / "staged_leak.py"
+        leak_file.write_text("TOKEN = 'AKIA1234567890ABCDEF'\n", encoding="utf-8")
+        stdout_stream = io.StringIO()
+        with patch("scripts.secret_sanitizer.get_git_files", return_value=[leak_file]):
+            with patch("sys.stdout", stdout_stream):
+                with patch("sys.argv", ["secret_sanitizer.py", "--staged"]):
+                    with self.assertRaises(SystemExit) as exit_context:
+                        secret_sanitizer.main()
+                    self.assertEqual(exit_context.exception.code, 1)
+        self.assertIn("SECURITY WARNING", stdout_stream.getvalue())
+
 
 if __name__ == "__main__":
     unittest.main()

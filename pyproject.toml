@@ -22,6 +22,7 @@ test = [
 ]
 
 [project.scripts]
+adt = "scripts.cli:main"
 aitools = "scripts.cli:main"
 aiui = "scripts.aiui:main"
 aiskills = "scripts.skills_manager:main"

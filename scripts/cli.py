@@ -11,7 +11,7 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parent.parent
 SCRIPTS_DIR = REPO_ROOT / "scripts"
 sys.path.insert(0, str(SCRIPTS_DIR))
-from tools_config import generate_default_config  # noqa: 12
+from tools_config import generate_default_config, resolve_linter_profile  # noqa: 12
 
 COMMAND_MAP: dict[str, str] = {
     "doctor": "doctor.py",
@@ -66,15 +66,17 @@ COMMAND_ALIASES: dict[str, str] = {
     "sec": "secrets",
     "types": "type-coverage",
     "types-coverage": "type-coverage",
+    "init": "config",
+    "wizard": "config",
 }
 
 
 def print_usage() -> None:
-    print("aitools: Developer Unified AI Development Tools Suite\n")
-    print("Usage: aitools <command> [options...]\n")
+    print("adt / aitools: Unified AI Development Tools Suite\n")
+    print("Usage: adt <command> [options...]\n")
     print("Core & Verification:")
     print("  doctor        Run diagnostics on environment, tool configs, and skills")
-    print("  lint          Run 90-rule AST, UI, and writing style linter")
+    print("  lint          Run 91-rule AST, UI, and writing style linter (--profile safe|standard|strict)")
     print("  fix           Run deterministic mechanical auto-fixers")
     print("  ui            Multi-framework UI manifest, evidence, and audit manager")
     print("  test          Run smart AST-driven test runner")
@@ -100,9 +102,10 @@ def print_usage() -> None:
     print("  links         Audit markdown links, anchors, and release download targets")
     print("  md            Convert documents (PDF, DOCX, XLSX, HTML) to Markdown\n")
     print("Configuration & Skills:")
+    print("  init          Run interactive setup wizard with profile selection")
+    print("  init-config   Generate default .aitools.toml declarative configuration file")
     print("  skills        Inspect, toggle, and sync agent skills across editors")
     print("  config        Configure AI tool instruction files, MCP servers, and skills")
-    print("  init-config   Generate default .aitools.toml declarative configuration file")
     print("  sync          Synchronize instruction files across all installed tools")
     print("  hooks         Install pre-commit and Antigravity task hooks")
     print("  git-hooks     Install or remove git pre-commit lint hook\n")
@@ -122,7 +125,65 @@ def print_usage() -> None:
     print("  tables        Check or write aligned Markdown tables")
     print("  minify        Compact AI instruction files for token savings")
     print("  benchmark     Time a command over repeated iterations\n")
-    print("Pass --help after any command for detailed options (e.g. 'aitools ui --help').")
+    print("Pass --help after any command for detailed options (e.g. 'adt ui --help').")
+
+
+def handle_lint_args(args: list[str]) -> list[str]:
+    profile_name: str | None = None
+    filtered_args: list[str] = []
+    idx = 0
+    while idx < len(args):
+        arg = args[idx]
+        if arg == "--profile" and idx + 1 < len(args):
+            profile_name = args[idx + 1]
+            idx += 2
+        elif arg.startswith("--profile="):
+            profile_name = arg.split("=", 1)[1]
+            idx += 1
+        else:
+            filtered_args.append(arg)
+            idx += 1
+
+    if not profile_name:
+        return filtered_args
+
+    profile = resolve_linter_profile(profile_name)
+    level = profile.get("level", "strict")
+    skip_codes = [str(c) for c in profile.get("skip", []) if str(c).isdigit()]
+
+    has_level = any(a == "--level" or a.startswith("--level=") for a in filtered_args)
+    if not has_level:
+        filtered_args.extend(["--level", level])
+
+    if skip_codes:
+        has_skip = False
+        new_args: list[str] = []
+        skip_pos = -1
+        for pos, a in enumerate(filtered_args):
+            if a == "--skip" and pos + 1 < len(filtered_args):
+                has_skip = True
+                skip_pos = pos + 1
+            elif a.startswith("--skip="):
+                has_skip = True
+                prefix, existing = a.split("=", 1)
+                existing_codes = [c.strip() for c in existing.split(",") if c.strip()]
+                combined = sorted(list(set(existing_codes + skip_codes)))
+                new_args.append(f"--skip={','.join(combined)}")
+                continue
+            new_args.append(a)
+
+        if has_skip and skip_pos != -1:
+            existing = new_args[skip_pos]
+            existing_codes = [c.strip() for c in existing.split(",") if c.strip()]
+            combined = sorted(list(set(existing_codes + skip_codes)))
+            new_args[skip_pos] = ",".join(combined)
+            return new_args
+        if not has_skip:
+            filtered_args.extend(["--skip", ",".join(skip_codes)])
+            return filtered_args
+        return new_args
+
+    return filtered_args
 
 
 def run_target_script(script_name: str, args: list[str]) -> int:
@@ -146,7 +207,7 @@ def main() -> None:
     subcmd = COMMAND_ALIASES.get(subcmd, subcmd)
     rest = raw_args[1:]
 
-    if subcmd == "init-config":
+    if subcmd == "init-config" or (subcmd == "config" and "--default" in rest):
         target = Path.cwd() / ".aitools.toml"
         if target.exists():
             print(f"[!] Target file already exists: {target}")
@@ -156,8 +217,11 @@ def main() -> None:
         return
 
     if subcmd not in COMMAND_MAP:
-        print(f"Unknown command: '{subcmd}'. Run 'aitools --help' for available commands.", file=sys.stderr)
+        print(f"Unknown command: '{subcmd}'. Run 'adt --help' for available commands.", file=sys.stderr)
         sys.exit(1)
+
+    if subcmd == "lint":
+        rest = handle_lint_args(rest)
 
     code = run_target_script(COMMAND_MAP[subcmd], rest)
     sys.exit(code)

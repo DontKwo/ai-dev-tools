@@ -1,0 +1,13 @@
+- id: adt-lint
+  name: adt-lint
+  description: Run ai-dev-tools AST and code quality linter
+  entry: uv run --no-project python scripts/claudemd_linter.py --diff
+  language: system
+  pass_filenames: false
+
+- id: adt-secrets
+  name: adt-secrets
+  description: Scan files for leaked credentials and sensitive keys
+  entry: uv run --no-project python scripts/secret_sanitizer.py --staged
+  language: system
+  pass_filenames: false

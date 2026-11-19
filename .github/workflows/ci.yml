@@ -33,3 +33,28 @@ jobs:
 
       - name: Run strict linter audit
         run: uv run --no-project python scripts/claudemd_linter.py . --level strict --full
+
+      - name: Verify unified CLI help
+        run: uv run --no-project python scripts/cli.py --help
+
+      - name: Verify unified CLI strict linting
+        run: uv run --no-project python scripts/cli.py lint . --profile strict --full
+
+      - name: Verify documentation links
+        run: uv run --no-project python scripts/link_checker.py .
+
+      - name: Verify secret sanitizer diff mode
+        run: uv run --no-project python scripts/secret_sanitizer.py --diff
+
+  composite-action:
+    name: Verify Turnkey Composite Action
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run local action with strict profile
+        uses: ./
+        with:
+          profile: strict
+          full: "true"

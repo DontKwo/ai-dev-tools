@@ -36,6 +36,24 @@ DEFAULT_SKILL_TARGETS = [
     "codex",
 ]
 
+BUILTIN_PROFILES: dict[str, dict[str, Any]] = {
+    "strict": {
+        "level": "strict",
+        "skip": [],
+        "description": "All 91 rules active. Strict AST safety, writing hygiene, and code structure.",
+    },
+    "standard": {
+        "level": "standard",
+        "skip": [1, 5, 17, 38],
+        "description": "AST safety, dependencies, and secrets with relaxed prose and comment rules.",
+    },
+    "safe": {
+        "level": "standard",
+        "skip": [1, 2, 3, 4, 5, 6, 7, 8, 11, 17, 18, 19, 23, 24, 25, 28, 31, 33, 34, 38],
+        "description": "Essential bug, hallucination, and security checks without opinionated styling.",
+    },
+}
+
 
 @dataclass
 class AiToolsConfig:
@@ -43,10 +61,14 @@ class AiToolsConfig:
     skill_targets: list[str] = field(default_factory=lambda: list(DEFAULT_SKILL_TARGETS))
     enabled_skills: list[str] = field(default_factory=list)
     disabled_skills: list[str] = field(default_factory=list)
+    linter_profile: str = "strict"
     linter_level: str = "strict"
     linter_diff_only: bool = True
     linter_skip: list[int] = field(default_factory=list)
     linter_only: list[int] = field(default_factory=list)
+    linter_enable: list[int] = field(default_factory=list)
+    linter_disable: list[int] = field(default_factory=list)
+    linter_profiles: dict[str, dict[str, Any]] = field(default_factory=dict)
     linter_ui_evidence: str = ""
     ui_frameworks: list[str] = field(default_factory=list)
     config_path: Path | None = None
@@ -102,6 +124,18 @@ def parse_toml_content(content: str) -> dict[str, Any]:
     return data
 
 
+def resolve_linter_profile(
+    profile_name: str,
+    custom_profiles: dict[str, dict[str, Any]] | None = None,
+) -> dict[str, Any]:
+    prof_key = profile_name.strip().lower()
+    if custom_profiles and prof_key in custom_profiles:
+        return custom_profiles[prof_key]
+    if prof_key in BUILTIN_PROFILES:
+        return BUILTIN_PROFILES[prof_key]
+    return BUILTIN_PROFILES["strict"]
+
+
 def generate_default_config() -> str:
     lines = [
         "# Developer AI Development Tools Configuration",
@@ -120,16 +154,27 @@ def generate_default_config() -> str:
         "disabled = []",
         "",
         "[linter]",
-        '# Verification level: standard, strict, full',
+        "# Profile presets: 'strict' (default, 91 rules), 'standard' (relaxed style), 'safe' (bugs/safety only)",
+        'profile = "strict"',
+        "# Verification level override: standard, strict, full",
         'level = "strict"',
         "# Scope to git diff by default inside git repositories",
         "diff_only = true",
-        "# Rule codes to skip globally for this repo (e.g. [38])",
+        "# Manually disable specific rule codes (e.g. [1, 5, 38])",
+        "disable = []",
+        "# Manually enable specific rule codes (overrides profile skips)",
+        "enable = []",
+        "# Rule codes to skip globally (alias for disable)",
         "skip = []",
         "# Run specific rule codes only",
         "only = []",
         '# Custom path to runtime UI interaction evidence',
         'ui_evidence = ""',
+        "",
+        "# Custom named profile example:",
+        "# [linter.profiles.team]",
+        '# level = "standard"',
+        "# skip = [1, 5, 38]",
         "",
         "[ui]",
         "# Framework hints: pyqt, web, android, flutter, ios, tkinter, wxpython, kivy, textual, dotnet",
@@ -201,12 +246,45 @@ def _build_config_from_dict(data: dict[str, Any], path: Path) -> AiToolsConfig:
             cfg.disabled_skills = [str(item) for item in skills_sec.get("disabled", [])]
 
     linter_sec = data.get("linter", {})
+    custom_profiles: dict[str, dict[str, Any]] = {}
     if isinstance(linter_sec, dict):
-        cfg.linter_level = str(linter_sec.get("level", "strict"))
+        raw_profiles = linter_sec.get("profiles", {})
+        if isinstance(raw_profiles, dict):
+            for pname, pdata in raw_profiles.items():
+                if isinstance(pdata, dict):
+                    custom_profiles[pname.strip().lower()] = pdata
+
+    for k, v in data.items():
+        if k.startswith("linter.profiles.") and isinstance(v, dict):
+            pname = k.split("linter.profiles.", 1)[1].strip().lower()
+            custom_profiles[pname] = v
+
+    cfg.linter_profiles = custom_profiles
+
+    if isinstance(linter_sec, dict):
+        cfg.linter_profile = str(linter_sec.get("profile", "strict")).strip().lower()
         cfg.linter_diff_only = bool(linter_sec.get("diff_only", True))
-        cfg.linter_skip = [int(code) for code in linter_sec.get("skip", []) if str(code).isdigit()]
-        cfg.linter_only = [int(code) for code in linter_sec.get("only", []) if str(code).isdigit()]
         cfg.linter_ui_evidence = str(linter_sec.get("ui_evidence", ""))
+
+        explicit_skip = [int(code) for code in linter_sec.get("skip", []) if str(code).isdigit()]
+        cfg.linter_disable = [int(code) for code in linter_sec.get("disable", []) if str(code).isdigit()]
+        cfg.linter_enable = [int(code) for code in linter_sec.get("enable", []) if str(code).isdigit()]
+        explicit_only = [int(code) for code in linter_sec.get("only", []) if str(code).isdigit()]
+
+        profile_info = resolve_linter_profile(cfg.linter_profile, cfg.linter_profiles)
+        if "level" in linter_sec:
+            cfg.linter_level = str(linter_sec["level"])
+        else:
+            cfg.linter_level = str(profile_info.get("level", "strict"))
+
+        base_skip = set(int(c) for c in profile_info.get("skip", []) if str(c).isdigit())
+        base_only = set(int(c) for c in profile_info.get("only", []) if str(c).isdigit())
+
+        combined_skip = (base_skip | set(explicit_skip) | set(cfg.linter_disable)) - set(cfg.linter_enable)
+        cfg.linter_skip = sorted(list(combined_skip))
+
+        combined_only = base_only | set(explicit_only)
+        cfg.linter_only = sorted(list(combined_only))
 
     ui_sec = data.get("ui", {})
     if isinstance(ui_sec, dict) and "frameworks" in ui_sec:
@@ -229,14 +307,28 @@ def save_tools_config(path: Path, config: AiToolsConfig) -> None:
         f"disabled = {config.disabled_skills!r}",
         "",
         "[linter]",
+        f'profile = "{config.linter_profile}"',
         f'level = "{config.linter_level}"',
         f"diff_only = {str(config.linter_diff_only).lower()}",
+        f"disable = {config.linter_disable!r}",
+        f"enable = {config.linter_enable!r}",
         f"skip = {config.linter_skip!r}",
         f"only = {config.linter_only!r}",
         f'ui_evidence = "{config.linter_ui_evidence}"',
         "",
+    ]
+    if config.linter_profiles:
+        for pname, pdata in config.linter_profiles.items():
+            lines.append(f"[linter.profiles.{pname}]")
+            for k, v in pdata.items():
+                if isinstance(v, str):
+                    lines.append(f'{k} = "{v}"')
+                else:
+                    lines.append(f"{k} = {v!r}")
+            lines.append("")
+    lines.extend([
         "[ui]",
         f"frameworks = {config.ui_frameworks!r}",
         "",
-    ]
+    ])
     path.write_text("\n".join(lines), encoding="utf-8")

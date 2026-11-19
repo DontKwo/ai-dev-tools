@@ -1,0 +1,41 @@
+name: 'ai-dev-tools Action'
+description: 'Fast AST safety, hallucinated import detection, secret scanning, and anti-AI slop linting for PRs and CI.'
+author: 'DontKwo'
+
+inputs:
+  profile:
+    description: 'Linter profile to run (strict, standard, safe, or custom profile defined in .aitools.toml)'
+    required: false
+    default: 'strict'
+  path:
+    description: 'Target directory or file path to lint'
+    required: false
+    default: '.'
+  full:
+    description: 'Whether to run a full repository audit instead of diff-only'
+    required: false
+    default: 'false'
+  python-version:
+    description: 'Python version to use'
+    required: false
+    default: '3.12'
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ inputs.python-version }}
+
+    - name: Install uv
+      uses: astral-sh/setup-uv@v3
+
+    - name: Run ai-dev-tools linter
+      shell: bash
+      run: |
+        ARGS="--profile ${{ inputs.profile }}"
+        if [ "${{ inputs.full }}" = "true" ]; then
+          ARGS="$ARGS --full"
+        fi
+        uv run --no-project python "${{ github.action_path }}/scripts/cli.py" lint "${{ inputs.path }}" $ARGS

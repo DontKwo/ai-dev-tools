@@ -52,6 +52,59 @@ This scans and reports every instance of `# noqa`, `// noqa`, `# type: ignore`, 
 
 ---
 
+## Rule Profiles & Customization
+
+The linter provides tiered verification profiles. Strict evaluation remains the default. Teams and developers can select relaxed presets, define custom profiles, or toggle individual rules.
+
+### Built-in Profiles
+
+| Profile | Level | Default Skips | Description |
+|:---|:---|:---|:---|
+| **`strict` (Default)** | `strict` | None | All 91 rules active: AST safety, type hints, anti-slop, formatting, and structural cleanliness. |
+| **`standard`** | `standard` | 1, 5, 17, 38 | Core AST safety, hallucination guards, dependencies, and secrets; relaxes prose style, comment limits, and single-letter variable checks. |
+| **`safe`** | `standard` | 1, 2, 3, 4, 5, 6, 7, 8, 11, 17, 18, 19, 23, 24, 25, 28, 31, 33, 34, 38 | Essential runtime safety: catches crashes, bad syntax, hallucinated imports, and secrets without enforcing style opinions. |
+
+### CLI Profile Selection
+
+Select a profile during ad-hoc terminal invocations:
+```bash
+# Run with safe profile on git diff
+adt lint --profile safe --diff
+
+# Run with standard profile
+adt lint --profile standard
+```
+
+### Declarative Configuration (`.aitools.toml`)
+
+Configure repository-wide profiles and fine-grained rule overrides in `.aitools.toml` (or `pyproject.toml` under `[tool.ai-dev-tools]`):
+
+```toml
+[linter]
+# Active profile preset: "strict", "standard", "safe", or custom profile name
+profile = "strict"
+
+# Verification level override: "standard", "strict", "full"
+level = "strict"
+
+# Scope to git diff by default inside git repositories
+diff_only = true
+
+# Manually disable specific rule codes (adds to profile skips)
+disable = [1, 5, 38]
+
+# Manually enable specific rule codes (removes from profile skips)
+enable = []
+
+# Custom named profile definition
+[linter.profiles.team]
+level = "standard"
+skip = [1, 5, 38]
+only = []
+```
+
+---
+
 ## Suppression Rules
 
 - **Inline suppression**: End a line with `# noqa` (or `// noqa`) to suppress all checks on that line, or `# noqa: <code>` (e.g. `# noqa: 11, 25`) to suppress specific codes.

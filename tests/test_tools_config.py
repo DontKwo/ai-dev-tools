@@ -7,6 +7,7 @@ from scripts.tools_config import (
     generate_default_config,
     load_tools_config,
     parse_toml_content,
+    resolve_linter_profile,
     save_tools_config,
 )
 
@@ -89,6 +90,83 @@ class TestToolsConfig(unittest.TestCase):
         self.assertIn("[skills]", content)
         self.assertIn("[linter]", content)
         self.assertIn("targets = ", content)
+        self.assertIn("profile = ", content)
+        self.assertIn("disable = ", content)
+        self.assertIn("enable = ", content)
+
+    def test_default_profile_is_strict(self) -> None:
+        cfg = AiToolsConfig()
+        self.assertEqual(cfg.linter_profile, "strict")
+        self.assertEqual(cfg.linter_level, "strict")
+        self.assertEqual(cfg.linter_skip, [])
+
+    def test_profile_standard_loading(self) -> None:
+        sample = """
+        [linter]
+        profile = "standard"
+        """
+        cfg_file = self.root / ".aitools.toml"
+        cfg_file.write_text(sample, encoding="utf-8")
+        loaded = load_tools_config(self.root)
+        self.assertEqual(loaded.linter_profile, "standard")
+        self.assertEqual(loaded.linter_level, "standard")
+        self.assertIn(1, loaded.linter_skip)
+        self.assertIn(5, loaded.linter_skip)
+        self.assertIn(17, loaded.linter_skip)
+        self.assertIn(38, loaded.linter_skip)
+
+    def test_profile_safe_loading(self) -> None:
+        sample = """
+        [linter]
+        profile = "safe"
+        """
+        cfg_file = self.root / ".aitools.toml"
+        cfg_file.write_text(sample, encoding="utf-8")
+        loaded = load_tools_config(self.root)
+        self.assertEqual(loaded.linter_profile, "safe")
+        self.assertEqual(loaded.linter_level, "standard")
+        self.assertIn(11, loaded.linter_skip)
+        self.assertIn(24, loaded.linter_skip)
+        self.assertIn(25, loaded.linter_skip)
+
+    def test_rule_disable_and_enable_overrides(self) -> None:
+        sample = """
+        [linter]
+        profile = "standard"
+        disable = [30]
+        enable = [1]
+        """
+        cfg_file = self.root / ".aitools.toml"
+        cfg_file.write_text(sample, encoding="utf-8")
+        loaded = load_tools_config(self.root)
+        self.assertIn(30, loaded.linter_skip)
+        self.assertNotIn(1, loaded.linter_skip)
+        self.assertIn(5, loaded.linter_skip)
+
+    def test_custom_profile_definition(self) -> None:
+        sample = """
+        [linter]
+        profile = "team_profile"
+
+        [linter.profiles.team_profile]
+        level = "full"
+        skip = [2, 3]
+        """
+        cfg_file = self.root / ".aitools.toml"
+        cfg_file.write_text(sample, encoding="utf-8")
+        loaded = load_tools_config(self.root)
+        self.assertEqual(loaded.linter_profile, "team_profile")
+        self.assertEqual(loaded.linter_level, "full")
+        self.assertEqual(loaded.linter_skip, [2, 3])
+
+    def test_resolve_linter_profile_function(self) -> None:
+        strict_info = resolve_linter_profile("strict")
+        self.assertEqual(strict_info["level"], "strict")
+        self.assertEqual(strict_info["skip"], [])
+
+        safe_info = resolve_linter_profile("safe")
+        self.assertEqual(safe_info["level"], "standard")
+        self.assertIn(11, safe_info["skip"])
 
 
 if __name__ == "__main__":

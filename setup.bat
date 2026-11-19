@@ -1,7 +1,17 @@
 @echo off
 setlocal EnableDelayedExpansion
 
-echo Developer AI Tools Setup for Windows
+echo ======================================================================
+echo                  Developer AI Tools Setup (Windows)
+echo ======================================================================
+echo This setup configures AI developer tools (Claude Code, Cursor, Cline,
+echo Google Antigravity, OpenAI Codex, Windsurf, GitHub Copilot, and Aider)
+echo with unified coding rules, automated AST linting, an MCP server, and
+echo 33 agent workflow skills.
+echo.
+echo Before any files are modified, you will see a plain-prose preview of
+echo all planned actions and can approve, reject, or customize each one.
+echo ======================================================================
 echo.
 
 set "SCRIPT_DIR=%~dp0"
@@ -28,38 +38,42 @@ echo Repo directory: %SCRIPT_DIR%
 echo.
 
 echo Choose configuration mode:
-echo   [1] Configure Claude Code only (Global ~/.claude/CLAUDE.md)
-echo   [2] Configure ALL AI Tools globally (Claude, Cursor, Cline, Antigravity, Codex, Windsurf, Copilot, Aider)
-echo   [3] Custom Interactive Wizard (choose tools, workspace vs global scope)
+echo   [1] Guided Interactive Setup (Recommended: choose tools, scope, and review plan)
+echo   [2] Configure ALL AI Tools globally (previews plan before applying)
+echo   [3] Configure Claude Code only globally (previews plan before applying)
 echo.
-choice /C 123 /M "Select option [1, 2, or 3]"
+choice /C 123 /M "Select option [1, 2, or 3, default 1]"
 set "MODE_CHOICE=%errorlevel%"
 
 if "%MODE_CHOICE%"=="1" (
     echo.
-    echo [+] Configuring Claude Code...
-    call %RUNNER% "%CONFIGURATOR%" --tools claude --scope global --action append
+    call %RUNNER% "%CONFIGURATOR%"
 )
 if "%MODE_CHOICE%"=="2" (
     echo.
-    echo [+] Configuring ALL supported AI tools...
     call %RUNNER% "%CONFIGURATOR%" --tools all --scope global --action append
 )
 if "%MODE_CHOICE%"=="3" (
     echo.
-    call %RUNNER% "%CONFIGURATOR%"
+    call %RUNNER% "%CONFIGURATOR%" --tools claude --scope global --action append
 )
 
 if %errorlevel% neq 0 (
     echo.
-    echo [!] Configuration encountered an error.
+    echo [!] Configuration was cancelled or encountered an error.
     pause
     exit /b %errorlevel%
 )
 
 :: Check for optional vulture package
 echo.
-choice /C YN /M "Install optional 'vulture' package for unused code detection (used in --level full audits)? "
+echo ----------------------------------------------------------------------
+echo Optional Dependency: Vulture Dead Code Analyzer
+echo ----------------------------------------------------------------------
+echo Vulture statically scans Python code for unreferenced functions and dead
+echo code. It is only required if you run full whole-repository audits (--level full).
+echo.
+choice /C YN /M "Install optional 'vulture' package? "
 if not errorlevel 2 (
     where uv >nul 2>&1
     if %errorlevel% equ 0 (
@@ -72,6 +86,13 @@ if not errorlevel 2 (
 )
 
 :: Global shortcuts in PATH
+echo.
+echo ----------------------------------------------------------------------
+echo Optional Convenience: Global Terminal Shortcuts
+echo ----------------------------------------------------------------------
+echo Adding ai-dev-tools\bin to your User PATH lets you run shortcuts like
+echo 'aitools', 'ailint', and 'aifix' directly from any terminal or PowerShell.
+echo Target directory: %SCRIPT_DIR%bin
 echo.
 choice /C YN /M "Add ai-dev-tools\bin to your User PATH? "
 if not errorlevel 2 (
