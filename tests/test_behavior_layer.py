@@ -22,15 +22,11 @@ class TestBehaviorLayer(unittest.TestCase):
     """Validates behavior layer sections, root instruction sync, skills, and memory."""
 
     def test_six_root_rule_files_exist_and_match(self) -> None:
-        """Ensure the six canonical instruction files exist and contain behavior sections."""
-        root_files = [
-            REPO_ROOT / "AGENTS.md",
-            REPO_ROOT / "CLAUDE.md",
-            REPO_ROOT / ".cursorrules",
-            REPO_ROOT / ".clinerules",
-            REPO_ROOT / ".windsurfrules",
-            REPO_ROOT / ".aider.conventions.md",
-        ]
+        """Ensure canonical instruction template exists and contains all behavior sections."""
+        template_target = REPO_ROOT / "templates" / "INSTRUCTIONS_TEMPLATE.md"
+        self.assertTrue(template_target.is_file(), f"Missing canonical rule template: {template_target}")
+        template_content = template_target.read_text(encoding="utf-8")
+
         required_headers = [
             "# Proactive Quality",
             "# Testing Standard",
@@ -40,17 +36,22 @@ class TestBehaviorLayer(unittest.TestCase):
             "# Cloud Agents",
         ]
 
-        for target in root_files:
-            self.assertTrue(target.is_file(), f"Missing rule file: {target}")
-            content = target.read_text(encoding="utf-8")
+        for header in required_headers:
+            self.assertIn(header, template_content, f"Missing section '{header}' in template")
+
+        from configure import build_instructions, get_tool_definitions
+        tool_defs = get_tool_definitions(REPO_ROOT)
+        for tool_key in ["claude", "cursor", "cline", "antigravity", "windsurf", "aider"]:
+            definition = tool_defs[tool_key]
+            generated = build_instructions(frontmatter=definition.get("frontmatter", ""), workspace=REPO_ROOT)
             for header in required_headers:
-                self.assertIn(header, content, f"Missing section '{header}' in {target.name}")
+                self.assertIn(header, generated, f"Generated rules for '{tool_key}' missing section '{header}'")
 
     def test_agents_md_line_limit(self) -> None:
-        """Verify generated AGENTS.md remains at about 120 lines or fewer."""
-        agents_path = REPO_ROOT / "AGENTS.md"
-        lines = agents_path.read_text(encoding="utf-8").splitlines()
-        self.assertLessEqual(len(lines), 120, f"AGENTS.md has {len(lines)} lines; exceeds 120 line limit")
+        """Verify canonical instructions template remains at about 120 lines or fewer."""
+        template_path = REPO_ROOT / "templates" / "INSTRUCTIONS_TEMPLATE.md"
+        lines = template_path.read_text(encoding="utf-8").splitlines()
+        self.assertLessEqual(len(lines), 120, f"Template has {len(lines)} lines; exceeds 120 line limit")
 
     def test_skills_frontmatter_and_naming(self) -> None:
         """Verify every skill has valid YAML frontmatter and its name matches its directory."""

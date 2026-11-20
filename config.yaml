@@ -1,0 +1,61 @@
+# ==============================================================================
+# AI-DEV-TOOLS CONFIGURATION (DEFAULT: FULL FUNCTIONALITY & FULL LINTING)
+# ==============================================================================
+# Complete documentation: docs/power-users/yaml-guide.md
+# Quickstart guide: docs/user/quickstart.md
+
+version: 1
+
+# Scope of configuration: 'workspace' (current project only) or 'global' (user home directory)
+scope: workspace
+
+# File modification mode:
+# - 'append': Preserves existing file content; inserts or updates the marked AI-DEV-TOOLS block.
+# - 'overwrite': Replaces the entire file; creates an automatic .bak backup of the original file.
+# - 'skip': Preserves existing files unchanged; only creates missing target files.
+write_mode: append
+
+# Target AI assistants to configure
+tools:
+  claude: true
+  cursor: true
+  cline: true
+  antigravity: true
+  codex: true
+  windsurf: true
+  copilot: true
+  aider: true
+
+# Rule Profile: Controls linter strictness and instruction depth
+# Built-in levels: 'full', 'strict', 'standard', 'safe', 'minimal'
+profile:
+  level: strict
+  skip_rules: []
+  description: "Full functionality and strict linting. Enforces AST safety, anti-AI style, and code quality."
+
+# Specific instruction file targets (toggle individually)
+targets:
+  claude_md: true
+  agents_md: true
+  cursorrules: true
+  clinerules: true
+  windsurfrules: true
+  aider_conventions: true
+  copilot_instructions: true
+
+# Model Context Protocol (MCP) servers configuration
+mcp:
+  enabled: true
+  server_name: ai-dev-tools
+
+# AI agent skills configuration
+# Bundles: 'all' (all 20+ skills), 'core', 'architecture', 'context', 'workflow', 'none'
+skills:
+  enabled: true
+  bundle: all
+  custom_skills: []
+
+# Git hooks automation
+hooks:
+  git_pre_commit: true
+  command: "uv run --no-project python scripts/claudemd_linter.py . --diff"

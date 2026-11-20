@@ -1,0 +1,39 @@
+# AI-Dev-Tools Configuration: Minimal Setup
+# Lightweight rules for a single primary tool, minimal overhead.
+version: 1
+scope: workspace
+write_mode: append
+
+tools:
+  claude: true
+  cursor: false
+  cline: false
+  antigravity: false
+  codex: false
+  windsurf: false
+  copilot: false
+  aider: false
+
+profile:
+  level: safe
+  skip_rules: [1, 2, 3, 4, 5, 6, 7, 8, 11, 17, 18, 19, 23, 24, 25, 28, 31, 33, 34, 38]
+  description: "Minimal setup: only Claude rules with safe AST protections."
+
+targets:
+  claude_md: true
+  agents_md: false
+  cursorrules: false
+  clinerules: false
+  windsurfrules: false
+  aider_conventions: false
+  copilot_instructions: false
+
+mcp:
+  enabled: false
+
+skills:
+  enabled: false
+  bundle: none
+
+hooks:
+  git_pre_commit: false

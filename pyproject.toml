@@ -8,7 +8,7 @@ version = "0.2.0"
 description = "Universal AI developer tools suite: multi-editor skills, 90-rule AST & UI linter, MCP server, and unified CLI."
 readme = "README.md"
 requires-python = ">=3.9"
-license = { text = "GPL-3.0-or-later" }
+license = { text = "Apache-2.0" }
 authors = [
   { name = "DontKwo" }
 ]

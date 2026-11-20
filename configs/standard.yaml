@@ -1,0 +1,42 @@
+# AI-Dev-Tools Configuration: Standard Development
+# Balanced profile: AST safety, dependency guard, and security without prose pedantry.
+version: 1
+scope: workspace
+write_mode: append
+
+tools:
+  claude: true
+  cursor: true
+  cline: false
+  antigravity: true
+  codex: false
+  windsurf: false
+  copilot: false
+  aider: false
+
+profile:
+  level: standard
+  skip_rules: [1, 5, 17, 38]
+  description: "AST safety and security with relaxed prose, single-letter variables, and comment rules."
+
+targets:
+  claude_md: true
+  agents_md: true
+  cursorrules: true
+  clinerules: false
+  windsurfrules: false
+  aider_conventions: false
+  copilot_instructions: false
+
+mcp:
+  enabled: true
+  server_name: ai-dev-tools
+
+skills:
+  enabled: true
+  bundle: core
+  custom_skills: []
+
+hooks:
+  git_pre_commit: true
+  command: "uv run --no-project python scripts/claudemd_linter.py . --diff"

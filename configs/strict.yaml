@@ -1,0 +1,42 @@
+# AI-Dev-Tools Configuration: Strict Development
+# Strict AST checks, anti-AI writing hygiene, core skills, pre-commit hook.
+version: 1
+scope: workspace
+write_mode: append
+
+tools:
+  claude: true
+  cursor: true
+  cline: true
+  antigravity: true
+  codex: false
+  windsurf: false
+  copilot: false
+  aider: false
+
+profile:
+  level: strict
+  skip_rules: []
+  description: "Strict development profile. Full linter enforcement on common tools."
+
+targets:
+  claude_md: true
+  agents_md: true
+  cursorrules: true
+  clinerules: true
+  windsurfrules: false
+  aider_conventions: false
+  copilot_instructions: false
+
+mcp:
+  enabled: true
+  server_name: ai-dev-tools
+
+skills:
+  enabled: true
+  bundle: core
+  custom_skills: []
+
+hooks:
+  git_pre_commit: true
+  command: "uv run --no-project python scripts/claudemd_linter.py . --diff"

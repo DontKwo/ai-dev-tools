@@ -1,0 +1,41 @@
+# AI-Dev-Tools Configuration: Safe Profile (Ideal for existing codebases)
+# Essential bug, hallucination, and secret checks without opinionated styling.
+version: 1
+scope: workspace
+write_mode: append
+
+tools:
+  claude: true
+  cursor: true
+  cline: false
+  antigravity: true
+  codex: false
+  windsurf: false
+  copilot: false
+  aider: false
+
+profile:
+  level: safe
+  skip_rules: [1, 2, 3, 4, 5, 6, 7, 8, 11, 17, 18, 19, 23, 24, 25, 28, 31, 33, 34, 38]
+  description: "Safe profile: Prevents AI bugs, hallucinated packages, and leaked secrets with zero style churn."
+
+targets:
+  claude_md: true
+  agents_md: true
+  cursorrules: true
+  clinerules: false
+  windsurfrules: false
+  aider_conventions: false
+  copilot_instructions: false
+
+mcp:
+  enabled: true
+  server_name: ai-dev-tools
+
+skills:
+  enabled: true
+  bundle: core
+  custom_skills: []
+
+hooks:
+  git_pre_commit: false

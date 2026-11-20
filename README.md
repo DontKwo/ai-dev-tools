@@ -1,29 +1,76 @@
 # ai-dev-tools
 
-> Make AI coding assistants self-verifying, token-efficient, and regression-free.
+Make AI coding assistants self-verifying, token-efficient, and regression-free.
 
 `ai-dev-tools` equips AI coding environments (Claude Code, Cursor, Google Antigravity, Cline, Windsurf, Codex, and GitHub Copilot) with unified rules, automated AST linting, and autonomous agent skills. Instead of relying solely on natural language prompts, the tool suite programmatically enforces code quality, catches hallucinations, and verifies correctness.
 
 ---
 
-## Quickstart
+## Interactive Setup: Choose Your Path
 
-### Run the Installer
+AI-Dev-Tools provides two streamlined setup paths:
 
-Run the interactive setup wizard for your operating system:
+### Path A: Standalone Setup GUI (Common Users)
 
-#### Windows
-```cmd
-setup.bat
-```
+No Python commands or file editing required. Built automatically on every release.
 
-#### Linux & macOS
-```bash
-chmod +x setup.sh
-./setup.sh
-```
+1. Download the standalone executable for your operating system:
+   - **Windows**: `adt-setup.exe`
+   - **Linux**: `adt-setup-linux`
+   - **macOS**: `adt-setup-macos`
+2. Run the application to inspect your target workspace.
+3. Choose your assistants, review the live safety check, and click **Apply Changes**.
 
-### Install as a Plugin
+*Or launch from source:* `python scripts/setup_gui.py` (or `adt gui`).
+
+Detailed guide: [Everyday User Quickstart](docs/user/quickstart.md).
+
+---
+
+### Path B: Declarative YAML & CLI (Power Users)
+
+Edit the configuration directly in any text editor and apply with flags:
+
+1. Open [config.yaml](config.yaml) (shipped with full functionality and strict linting by default).
+2. Choose your active assistants, write mode (`append`, `overwrite`, or `skip`), and rule profile.
+3. Apply the settings via terminal:
+   ```bash
+   python scripts/apply_config.py --config config.yaml
+   ```
+4. Optional dry-run preview:
+   ```bash
+   python scripts/apply_config.py --config config.yaml --dry-run
+   ```
+
+Preset configurations are available in `configs/`:
+- `configs/full.yaml` (Full functionality, all tools, all skills, strict linting)
+- `configs/strict.yaml` (Strict profile for core assistants)
+- `configs/standard.yaml` (Relaxed prose and comment styling)
+- `configs/safe.yaml` (Essential bug, package, and secret safeguards with zero style churn)
+- `configs/minimal.yaml` (Lightweight setup)
+
+Detailed guides:
+- [YAML Configuration Guide](docs/power-users/yaml-guide.md)
+- [CLI Reference](docs/power-users/cli-reference.md)
+- [Rule Strictness Profiles](docs/power-users/profiles.md)
+
+---
+
+## Documentation by Role
+
+| Audience | Documentation | Description |
+| :--- | :--- | :--- |
+| **Everyday Users** | [User Quickstart](docs/user/quickstart.md) | 3-step setup via executable, zero terminal commands |
+| **Power Users** | [YAML Guide](docs/power-users/yaml-guide.md) | Complete key-by-key schema documentation for `config.yaml` |
+| **Power Users** | [CLI Reference](docs/power-users/cli-reference.md) | Flags, dry-run previews, JSON output, and automation |
+| **Power Users** | [Rule Profiles](docs/power-users/profiles.md) | Full vs Standard vs Safe profile comparison |
+| **Developers** | [Architecture Manual](docs/developer/architecture.md) | Execution engine, data-loss protection, and CI build pipeline |
+| **Developers** | [Extending Guide](docs/developer/extending.md) | Adding assistants, custom skills, and custom linter rules |
+| **Reference** | [91 Linter Rules](docs/LINTER_RULES.md) | Complete catalog of AST safety, security, and quality rules |
+
+---
+
+## Install as an Agent Plugin
 
 Install skills directly into your agent harness:
 
@@ -32,16 +79,6 @@ Install skills directly into your agent harness:
 - **VS Code**: Add `"DontKwo/ai-dev-tools"` to `chat.plugins.marketplaces` in `settings.json`
 - **Gemini CLI**: `gemini skills install https://github.com/DontKwo/ai-dev-tools.git`
 - **Universal (skills.sh)**: `npx skills@latest add DontKwo/ai-dev-tools`
-
----
-
-## How It Works
-
-`ai-dev-tools` separates autonomous agent operations from developer terminal commands:
-
-- **Autonomous Agent Skills (`skills/`)**: Skills are procedural runbooks for AI assistants. The assistant loads them into prompt context dynamically when matching tasks arise (such as debugging, running test cycles, or checking secrets). Developers do not need to call or manage skills manually.
-- **Model Context Protocol Server (`mcp/server.py`)**: Exposes native analysis tools over JSON-RPC for MCP-compatible editors and agents.
-- **Developer CLI Utilities (`bin/`)**: Lightweight command-line shortcuts for developers to lint, auto-fix, and test changes directly in the terminal.
 
 ---
 
@@ -55,7 +92,8 @@ You can run individual tool commands (`ailint`, `aifix`, `aitest`, `aidoctor`) o
 | `adt fix` | `aifix` | `scripts/lint_fixer.py` | Apply deterministic auto-fixes (operators, formatting, quotes). |
 | `adt test` | `aitest` | `scripts/smart_test_runner.py` | Run only test suites impacted by changed files. |
 | `adt doctor` | `aidoctor` | `scripts/doctor.py` | Audit tool configuration, environment paths, and health. |
-| `adt init` | - | `scripts/configure.py` | Interactive setup wizard with rule profile selection. |
+| `adt apply` | - | `scripts/apply_config.py` | Apply declarative YAML configuration with dry-run support. |
+| `adt gui` | - | `scripts/setup_gui.py` | Launch interactive graphical setup wizard. |
 
 ---
 
@@ -92,50 +130,3 @@ jobs:
         with:
           profile: strict
 ```
-
----
-
-## Verification
-
-Run the test suite:
-```bash
-uv run --no-project python -m unittest discover tests
-```
-
-Run the strict linter:
-```bash
-uv run --no-project python scripts/claudemd_linter.py . --level strict
-```
-
----
-
-## Documentation for Power Users
-
-- [User Guide](docs/USER_GUIDE.md): Developer manual for terminal workflows and CLI utilities.
-- [AI Assistant Rule Files](docs/RULE_FILES.md): Supported environments, global vs workspace files, and rule synchronization.
-- [Agent Skills Guide](docs/SKILLS_GUIDE.md): Catalog of autonomous agent skills and progressive disclosure model.
-- [Developer Manual](docs/DEV_MANUAL.md): Complete CLI flags and programmatic APIs for all scripts.
-- [Linter Rules](docs/LINTER_RULES.md): Specifications for all 91 rules across AST safety, UI stability, and style.
-- [Setup Guide](docs/SETUP_GUIDE.md): Installation options across operating systems.
-- [FAQ](docs/FAQ.md): Common questions, verification levels, and rule suppressions.
-
----
-
-## Acknowledgements & Third-Party Credits
-
-This project builds on, adapts, or preserves work from the open-source community:
-- [Matt Pocock (`mattpocock/skills`)](https://github.com/mattpocock/skills) for workflow skills and prompt engineering routines.
-- [Jesse Vincent (`obra/superpowers`)](https://github.com/obra/superpowers) for agentic software engineering discipline and TDD methodology.
-- [Dietrich Gebert (`DietrichGebert/ponytail`)](https://github.com/DietrichGebert/ponytail) for the minimalist senior developer decision ladder.
-- [Meta Platforms, Inc. (`meta/astryx`)](https://github.com/meta/astryx) for accessible React 19 UI component templates and design token schemas.
-- [RTK Authors (`rtk-ai/rtk`)](https://github.com/rtk-ai/rtk) for terminal token compression patterns.
-- [Tirth Patel (`tirth8205/code-review-graph`)](https://github.com/tirth8205/code-review-graph) for AST blast-radius analysis and code graph modeling.
-- [Mert Köseoğlu (`mksglu/context-mode`)](https://github.com/mksglu/context-mode) for sandbox execution and SQLite FTS5 search patterns.
-- [Erkam Yaman (`erkamyaman/rust-anything`)](https://github.com/erkamyaman/rust-anything) for behavior recording and migration replay patterns.
-- [elementalsouls (`elementalsouls/Claude-BugHunter`)](https://github.com/elementalsouls/Claude-BugHunter) for defensive security audit checklists.
-
-See [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) for full license details.
-
-## Developer Tools Disclaimer
-
-DEVELOPER TOOLS DISCLAIMER: ai-dev-tools provides automated AST analysis, code inspection, and refactoring scripts. The software is provided AS IS without warranty of any kind. The author assumes no liability for code modifications, data loss, or build errors resulting from automated tool execution.

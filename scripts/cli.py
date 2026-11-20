@@ -20,6 +20,8 @@ COMMAND_MAP: dict[str, str] = {
     "ui": "aiui.py",
     "skills": "skills_manager.py",
     "config": "configure.py",
+    "apply": "apply_config.py",
+    "gui": "setup_gui.py",
     "checkpoint": "rollback.py",
     "secrets": "secret_sanitizer.py",
     "test": "smart_test_runner.py",

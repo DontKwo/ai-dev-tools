@@ -1,0 +1,69 @@
+name: Build Setup GUI Executable
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - "v*"
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build Setup GUI for ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - os: windows-latest
+            artifact_name: adt-setup.exe
+            output_name: adt-setup.exe
+            sep: ";"
+          - os: ubuntu-latest
+            artifact_name: adt-setup-linux
+            output_name: adt-setup-linux
+            sep: ":"
+          - os: macos-latest
+            artifact_name: adt-setup-macos
+            output_name: adt-setup-macos
+            sep: ":"
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install PyInstaller and dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pyinstaller
+
+      - name: Install Linux GUI system dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y python3-tk
+
+      - name: Build standalone executable (Windows)
+        if: runner.os == 'Windows'
+        run: |
+          pyinstaller --onefile --noconsole --name adt-setup --add-data "templates;templates" --add-data "configs;configs" --add-data "skills;skills" scripts/setup_gui.py
+
+      - name: Build standalone executable (Unix)
+        if: runner.os != 'Windows'
+        run: |
+          pyinstaller --onefile --noconsole --name ${{ matrix.output_name }} --add-data "templates:templates" --add-data "configs:configs" --add-data "skills:skills" scripts/setup_gui.py
+
+      - name: Upload GUI artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact_name }}
+          path: dist/*
+          retention-days: 30

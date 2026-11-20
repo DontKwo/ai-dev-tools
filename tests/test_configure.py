@@ -10,12 +10,14 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO_ROOT / "scripts"))
 
 from configure import (
+    SKILL_BUNDLES,
     PlannedAction,
     ask_user_plan_confirmation,
     build_instructions,
     configure_mcp_servers,
     configure_skills,
     create_setup_plan,
+    detect_installed_tools,
     execute_setup_plan,
     get_tool_definitions,
     install_file,
@@ -374,6 +376,52 @@ class TestConfigure(unittest.TestCase):
         self.assertTrue(target_cfg.is_file())
         content = target_cfg.read_text(encoding="utf-8")
         self.assertIn('profile = "safe"', content)
+
+    def test_detect_installed_tools(self) -> None:
+        (self.mock_ws / "CLAUDE.md").touch()
+        (self.mock_ws / ".cursorrules").touch()
+        with patch("configure.get_user_home", return_value=self.mock_home):
+            detected = detect_installed_tools(self.mock_ws)
+        self.assertIn("claude", detected)
+        self.assertIn("cursor", detected)
+
+    def test_skill_bundles_defined(self) -> None:
+        self.assertIn("core", SKILL_BUNDLES)
+        self.assertIn("architecture", SKILL_BUNDLES)
+        self.assertIn("context", SKILL_BUNDLES)
+        self.assertIn("smart-test", SKILL_BUNDLES["core"])
+        self.assertIn("codebase-design", SKILL_BUNDLES["architecture"])
+
+    def test_create_setup_plan_with_git_hook(self) -> None:
+        (self.mock_ws / ".git").mkdir()
+        plan = create_setup_plan(
+            repo_root=self.mock_repo,
+            selected_tools=["claude"],
+            scope="workspace",
+            workspace=self.mock_ws,
+            setup_rules=False,
+            setup_mcp=False,
+            setup_skills=False,
+            init_custom_config=False,
+            setup_git_hook=True,
+        )
+        git_actions = [p for p in plan if p.category == "git-hook"]
+        self.assertEqual(len(git_actions), 1)
+        self.assertEqual(git_actions[0].title, "Git Pre-Commit Hook")
+
+    @patch("install_hooks.install_hook")
+    def test_execute_setup_plan_git_hook(self, mock_install_hook: MagicMock) -> None:
+        plan = [
+            PlannedAction(
+                category="git-hook",
+                title="Git Pre-Commit Hook",
+                description="Install hook",
+                target_path=self.mock_ws / ".git" / "hooks" / "pre-commit",
+                action_type="create",
+            )
+        ]
+        execute_setup_plan(plan, self.mock_ws, action="append", dry_run=False)
+        mock_install_hook.assert_called_once_with(self.mock_ws, action="append")
 
 
 if __name__ == "__main__":

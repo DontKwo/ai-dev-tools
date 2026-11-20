@@ -14,7 +14,7 @@ import shutil
 import sys
 from pathlib import Path
 
-REPO_ROOT = Path(__file__).resolve().parent.parent
+REPO_ROOT = Path(getattr(sys, "_MEIPASS", Path(__file__).resolve().parent.parent))
 sys.path.insert(0, str(REPO_ROOT / "scripts"))
 from skills_manager import get_tool_skill_dirs, install_single_skill
 from tools_config import generate_default_config, load_tools_config, save_tools_config
@@ -95,9 +95,111 @@ def get_tool_definitions(workspace: Path | None = None) -> dict[str, dict]:
     }
 
 
+SKILL_BUNDLES: dict[str, list[str]] = {
+    "all": [],
+    "core": [
+        "smart-test",
+        "tdd",
+        "exhaustive-testing",
+        "lint-and-fix",
+        "diagnosing-bugs",
+        "dependency-guard",
+        "secret-sanitizer",
+    ],
+    "architecture": [
+        "codebase-design",
+        "improve-codebase-architecture",
+        "domain-modeling",
+        "to-spec",
+        "to-tickets",
+        "ponytail",
+    ],
+    "context": [
+        "codebase-context",
+        "doc-to-markdown",
+        "clean-encoding",
+        "pack-context",
+    ],
+    "workflow": [
+        "grill-user",
+        "workspace-checkpoint",
+        "handoff",
+        "session-wrap-up",
+        "triage",
+        "writing-for-agents",
+        "implicit-requirements",
+        "definition-of-done",
+    ],
+}
+
+
+def detect_installed_tools(workspace: Path | None = None) -> list[str]:
+    home = get_user_home()
+    ws = workspace or Path.cwd()
+    detected: list[str] = []
+
+    if (home / ".claude").is_dir() or (ws / "CLAUDE.md").is_file() or shutil.which("claude"):
+        detected.append("claude")
+
+    if (
+        (home / ".cursor").is_dir()
+        or (ws / ".cursor").is_dir()
+        or (ws / ".cursorrules").is_file()
+        or shutil.which("cursor")
+    ):
+        detected.append("cursor")
+
+    if (
+        (home / ".gemini").is_dir()
+        or (ws / ".agent").is_dir()
+        or (ws / ".agents").is_dir()
+        or (ws / "AGENTS.md").is_file()
+        or shutil.which("agy")
+    ):
+        detected.append("antigravity")
+
+    if (
+        (home / ".codeium" / "windsurf").is_dir()
+        or (ws / ".windsurfrules").is_file()
+        or shutil.which("windsurf")
+    ):
+        detected.append("windsurf")
+
+    code_storage = (
+        home / "AppData" / "Roaming" / "Code" / "User" / "globalStorage"  # noqa: 91
+        if IS_WINDOWS
+        else home / ".config" / "Code" / "User" / "globalStorage"
+    )
+    if (
+        (code_storage / "saoudrizwan.claude-dev").is_dir()
+        or (code_storage / "rooveterinaryinc.roo-cline").is_dir()
+        or (ws / ".clinerules").is_file()
+    ):
+        detected.append("cline")
+
+    if (home / ".codex").is_dir() or shutil.which("codex"):
+        detected.append("codex")
+
+    if (ws / ".github" / "copilot-instructions.md").is_file() or (ws / ".github").is_dir():
+        detected.append("copilot")
+
+    if (
+        (home / ".aider.conventions.md").is_file()
+        or (ws / ".aider.conventions.md").is_file()
+        or shutil.which("aider")
+    ):
+        detected.append("aider")
+
+    return detected
+
+
 def calc_linter_command(workspace: Path | None = None) -> str:
     if workspace is not None and workspace.resolve() == REPO_ROOT.resolve():
         return "uv run --no-project python scripts/claudemd_linter.py"
+    if shutil.which("adt"):
+        return "adt lint"
+    if shutil.which("ailint"):
+        return "ailint"
     if shutil.which("aitools"):
         return "aitools lint"
     script_str = format_command_path(LINTER_SCRIPT)
@@ -542,6 +644,7 @@ def create_setup_plan(
     linter_profile: str | None = None,
     linter_disable: list[int] | None = None,
     linter_enable: list[int] | None = None,
+    setup_git_hook: bool = False,
 ) -> list[PlannedAction]:
     plan: list[PlannedAction] = []
     tool_defs = get_tool_definitions(workspace)
@@ -679,6 +782,23 @@ def create_setup_plan(
             )
         )
 
+    # 6. Git Pre-Commit Hook
+    if setup_git_hook:
+        git_dir = workspace / ".git"
+        if git_dir.is_dir():
+            hook_target = git_dir / "hooks" / "pre-commit"
+            action_type = "update" if hook_target.exists() else "create"
+            desc = f"Install git pre-commit hook to verify staged changes with linter in {hook_target}"
+            plan.append(
+                PlannedAction(
+                    category="git-hook",
+                    title="Git Pre-Commit Hook",
+                    description=desc,
+                    target_path=hook_target,
+                    action_type=action_type,
+                )
+            )
+
     return plan
 
 
@@ -703,10 +823,11 @@ def render_plan_summary(plan: list[PlannedAction]) -> str:
         "mcp": "2. Model Context Protocol (MCP) Server Registrations",
         "skill": "3. Agent Skills (Workflow Runbooks)",
         "config": "4. Custom Project Configuration",
+        "git-hook": "5. Git Pre-Commit Hooks",
     }
 
     action_index = 1
-    for category_key in ("rule", "mcp", "skill", "config"):
+    for category_key in ("rule", "mcp", "skill", "config", "git-hook"):
         category_items = by_category.get(category_key, [])
         if not category_items:
             continue
@@ -898,6 +1019,13 @@ def execute_setup_plan(
                 shutil.copy2(example_path, target_path)
                 print(f"[OK] Initialized custom linter config: {target_path}")
 
+        elif item.category == "git-hook":
+            if dry_run:
+                print(f"[DRY-RUN] Would install git pre-commit hook in: {workspace}")
+                continue
+            from install_hooks import install_hook
+            install_hook(workspace, action=action)
+
 
 def run_interactive_wizard(workspace_override: Path | None = None, dry_run: bool = False) -> None:
     print("=" * 70)
@@ -908,91 +1036,172 @@ def run_interactive_wizard(workspace_override: Path | None = None, dry_run: bool
     print("with unified coding standards, AST linting, MCP tools, and skills.")
     print(f"Repository directory: {REPO_ROOT}")
     print(f"Linter script:        {LINTER_SCRIPT}")
-    print("")
 
-    tool_defs = get_tool_definitions()
+    target_workspace = (workspace_override or Path.cwd()).resolve()
+    print(f"Workspace directory:  {target_workspace}\n")
+
+    tool_defs = get_tool_definitions(target_workspace)
     tool_keys = list(tool_defs.keys())
 
-    print("Step 1: Choose AI Tools to Configure")
-    print("  0) [ALL] Configure all supported AI tools")
-    for index, key in enumerate(tool_keys, 1):
-        print(f"  {index}) {tool_defs[key]['name']} ({key})")
+    detected = detect_installed_tools(target_workspace)
+    if detected:
+        detected_names = [tool_defs[k]["name"] for k in detected if k in tool_defs]
+        print(f"[+] Detected AI tools on your system: {', '.join(detected_names)}")
+    else:
+        print("[i] No existing AI assistant configurations detected.")
+
+    print("\nChoose setup mode:")
+    print("  [1] Express Setup (Recommended: auto-detects tools, sets up workspace with Standard profile)")
+    print("  [2] Custom Guided Setup (Configure tools, scope, profile, skills, and hooks step-by-step)")
+    print("  [3] Diagnostic Health Doctor (Audit installed tools, paths, and skills)")
+    print("  [4] Revert / Clean Uninstall (Remove ai-dev-tools rules and settings)")
     print("")
 
-    selection = input(f"Select tools [0-{len(tool_keys)} or comma-separated, default 0]: ").strip()
-    if not selection or selection == "0":
-        selected_tools = tool_keys
-    else:
-        selected_tools = []
-        for part in selection.split(","):
-            part_str = part.strip()
-            if part_str.isdigit():
-                num_idx = int(part_str) - 1
-                if 0 <= num_idx < len(tool_keys):
-                    selected_tools.append(tool_keys[num_idx])
-            elif part_str in tool_defs:
-                selected_tools.append(part_str)
-        if not selected_tools:
+    try:
+        mode_input = input("Select mode [1-4, default 1]: ").strip().lower()
+    except (EOFError, KeyboardInterrupt):
+        print("\n[-] Setup cancelled.")
+        return
+
+    if mode_input in ("3", "doctor", "health"):
+        print("\n>>> Running Environment Health Doctor...")
+        subprocess.run([sys.executable, str(REPO_ROOT / "scripts" / "doctor.py")])
+        return
+
+    if mode_input in ("4", "revert", "uninstall", "remove"):
+        print("\n>>> Reverting ai-dev-tools configurations...")
+        selected = detected if detected else tool_keys
+        remove_tool_targets(selected, "workspace", target_workspace, dry_run=dry_run)
+        configure_mcp_servers(REPO_ROOT, "workspace", target_workspace, selected, dry_run=dry_run, remove=True)
+        configure_skills(REPO_ROOT, "workspace", target_workspace, tools=selected, dry_run=dry_run, remove=True)
+        print("\n[OK] Cleanup complete.")
+        return
+
+    if mode_input in ("2", "custom", "guided"):
+        print("\nStep 1: Choose AI Tools to Configure")
+        print("  0) [ALL] Configure all supported AI tools")
+        for index, key in enumerate(tool_keys, 1):
+            tag = " [detected]" if key in detected else ""
+            print(f"  {index}) {tool_defs[key]['name']} ({key}){tag}")
+        print("")
+
+        default_tool_sel = "0" if not detected else ",".join(str(tool_keys.index(k) + 1) for k in detected)
+        selection = input(f"Select tools [0-{len(tool_keys)} or comma-separated, default {default_tool_sel}]: ").strip()
+        if not selection:
+            selected_tools = detected if detected else tool_keys
+        elif selection == "0":
             selected_tools = tool_keys
+        else:
+            selected_tools = []
+            for part in selection.split(","):
+                part_str = part.strip()
+                if part_str.isdigit():
+                    num_idx = int(part_str) - 1
+                    if 0 <= num_idx < len(tool_keys):
+                        selected_tools.append(tool_keys[num_idx])
+                elif part_str in tool_defs:
+                    selected_tools.append(part_str)
+            if not selected_tools:
+                selected_tools = detected if detected else tool_keys
 
-    print(f"\n[+] Selected tools: {', '.join(selected_tools)}")
+        print(f"\n[+] Selected tools: {', '.join(selected_tools)}")
 
-    print("\nStep 2: Choose Configuration Scope")
-    print("  1) Global (Recommended: User profile, applies to all projects on this machine)")
-    print("  2) Workspace (Applies only to this specific project directory)")
-    print("  3) Both (Configures global user profile and this project directory)")
-    scope_choice = input("Select scope [1-3, default 1]: ").strip()
-    scope_map = {"1": "global", "2": "workspace", "3": "both"}
-    chosen_scope = scope_map.get(scope_choice, "global")
+        print("\nStep 2: Choose Configuration Scope")
+        print("  1) Workspace (Recommended: applies only to this project directory)")
+        print("  2) Global (User profile: applies to all projects on this machine)")
+        print("  3) Both (Configures global user profile and this project directory)")
+        scope_choice = input("Select scope [1-3, default 1]: ").strip()
+        scope_map = {"1": "workspace", "2": "global", "3": "both"}
+        chosen_scope = scope_map.get(scope_choice, "workspace")
 
-    target_workspace = workspace_override or Path.cwd()
-    if chosen_scope in ("workspace", "both"):
-        ws_in = input(f"Target workspace folder [default: {target_workspace}]: ").strip()
-        if ws_in:
-            target_workspace = Path(ws_in).resolve()
+        if chosen_scope in ("workspace", "both"):
+            ws_in = input(f"Target workspace folder [default: {target_workspace}]: ").strip()
+            if ws_in:
+                target_workspace = Path(ws_in).resolve()
 
-    print("\nStep 3: Choose Components to Configure")
-    rules_in = input("  Install instruction rules (coding guidelines and linter commands)? [Y/n]: ").strip().lower()
-    setup_rules = rules_in not in ("n", "no")
+        print("\nStep 3: Choose Linter Rule Profile")
+        print("  1) Standard (Recommended: AST safety, dependencies, and secrets with relaxed prose/comment rules)")
+        print("  2) Safe (Core safety only: bugs, runtime crashes, hallucinated imports, secrets)")
+        print("  3) Strict (All 91 rules active: full AST safety, style, and anti-slop)")
+        print("  4) Custom (Specify custom profile name or rule exclusions)")
+        prof_choice = input("Select profile [1-4, default 1]: ").strip()
 
-    mcp_in = input("  Configure Model Context Protocol (MCP) server for selected tools? [Y/n]: ").strip().lower()
-    setup_mcp = mcp_in not in ("n", "no")
+        prof_map = {"1": "standard", "2": "safe", "3": "strict", "4": "custom"}
+        chosen_profile = prof_map.get(prof_choice, "standard")
+        chosen_disable: list[int] = []
 
-    skills_in = input("  Install agent skills (33 workflow runbooks for agent reasoning)? [Y/n]: ").strip().lower()
-    setup_skills = skills_in not in ("n", "no")
+        if chosen_profile == "custom":
+            custom_name = input("Custom profile name [default: team]: ").strip() or "team"
+            chosen_profile = custom_name
+            skips_in = input("Enter rule codes to disable/skip (comma-separated, e.g. 1, 5, 38) [optional]: ").strip()
+            if skips_in:
+                for part in skips_in.split(","):
+                    part_clean = part.strip()
+                    if part_clean.isdigit():
+                        chosen_disable.append(int(part_clean))
 
-    print("\nStep 4: Choose Linter Rule Profile")
-    print("  1) Strict (Default: 91 rules active, full AST safety, style, and anti-slop)")
-    print("  2) Standard (AST safety, dependencies, and secrets with relaxed prose/comment rules)")
-    print("  3) Safe (Core safety only: bugs, runtime crashes, hallucinated imports, secrets)")
-    print("  4) Custom (Specify custom profile name or rule exclusions)")
-    prof_choice = input("Select profile [1-4, default 1]: ").strip()
+        print("\nStep 4: Choose Agent Skills Bundle")
+        print("  1) All Skills (Recommended: 37 agent runbooks for planning, testing, and debugging)")
+        print("  2) Core Safety & Testing (smart-test, tdd, exhaustive-testing, lint-and-fix, diagnosing-bugs, deps, sec)")
+        print("  3) Architecture & Design (codebase-design, domain-modeling, improve-codebase-architecture, to-spec)")
+        print("  4) Context & Optimization (codebase-context, doc-to-markdown, clean-encoding, pack-context)")
+        print("  5) None (Skip skills installation)")
+        skill_choice = input("Select skill bundle [1-5, default 1]: ").strip()
+        skill_map = {"1": "all", "2": "core", "3": "architecture", "4": "context", "5": "none"}
+        chosen_bundle = skill_map.get(skill_choice, "all")
+        if chosen_bundle == "none":
+            setup_skills = False
+            enabled_skills = None
+        elif chosen_bundle == "all":
+            setup_skills = True
+            enabled_skills = None
+        else:
+            setup_skills = True
+            enabled_skills = SKILL_BUNDLES.get(chosen_bundle, None)
 
-    prof_map = {"1": "strict", "2": "standard", "3": "safe", "4": "custom"}
-    chosen_profile = prof_map.get(prof_choice, "strict")
-    chosen_disable: list[int] = []
+        print("\nStep 5: Choose Components to Configure")
+        rules_in = input("  Install instruction rules (coding guidelines and linter commands)? [Y/n, default Y]: ").strip().lower()
+        setup_rules = rules_in not in ("n", "no")
 
-    if chosen_profile == "custom":
-        custom_name = input("Custom profile name [default: team]: ").strip() or "team"
-        chosen_profile = custom_name
-        skips_in = input("Enter rule codes to disable/skip (comma-separated, e.g. 1, 5, 38) [optional]: ").strip()
-        if skips_in:
-            for part in skips_in.split(","):
-                part_clean = part.strip()
-                if part_clean.isdigit():
-                    chosen_disable.append(int(part_clean))
+        mcp_in = input("  Configure Model Context Protocol (MCP) server for selected tools? [Y/n, default Y]: ").strip().lower()
+        setup_mcp = mcp_in not in ("n", "no")
 
-    plan = create_setup_plan(
-        repo_root=REPO_ROOT,
-        selected_tools=selected_tools,
-        scope=chosen_scope,
-        workspace=target_workspace,
-        setup_rules=setup_rules,
-        setup_mcp=setup_mcp,
-        setup_skills=setup_skills,
-        linter_profile=chosen_profile,
-        linter_disable=chosen_disable,
-    )
+        has_git = (target_workspace / ".git").is_dir()
+        if has_git:
+            hook_in = input("  Install Git pre-commit hook to verify staged changes with linter? [Y/n, default Y]: ").strip().lower()
+            setup_hook = hook_in not in ("n", "no")
+        else:
+            setup_hook = False
+
+        plan = create_setup_plan(
+            repo_root=REPO_ROOT,
+            selected_tools=selected_tools,
+            scope=chosen_scope,
+            workspace=target_workspace,
+            setup_rules=setup_rules,
+            setup_mcp=setup_mcp,
+            setup_skills=setup_skills,
+            enabled_skills=enabled_skills,
+            linter_profile=chosen_profile,
+            linter_disable=chosen_disable,
+            setup_git_hook=setup_hook,
+        )
+
+    else:
+        # Express setup (Option 1)
+        selected_tools = detected if detected else tool_keys
+        has_git = (target_workspace / ".git").is_dir()
+        plan = create_setup_plan(
+            repo_root=REPO_ROOT,
+            selected_tools=selected_tools,
+            scope="workspace",
+            workspace=target_workspace,
+            setup_rules=True,
+            setup_mcp=True,
+            setup_skills=True,
+            linter_profile="standard",
+            setup_git_hook=has_git,
+        )
 
     approved = ask_user_plan_confirmation(plan, target_workspace)
     if approved:
@@ -1036,6 +1245,21 @@ def main() -> None:
         "--yes",
         action="store_true",
         help="Automatically approve all planned actions without interactive prompts.",
+    )
+    parser.add_argument(
+        "--quick",
+        action="store_true",
+        help="Quick express configuration using auto-detected tools and standard profile.",
+    )
+    parser.add_argument(
+        "--hooks",
+        action="store_true",
+        help="Install git pre-commit hook to lint staged files before commit.",
+    )
+    parser.add_argument(
+        "--skill-bundle",
+        choices=["all", "core", "architecture", "context", "workflow"],
+        help="Install a predefined bundle of agent skills.",
     )
     parser.add_argument(
         "--no-mcp",
@@ -1099,8 +1323,33 @@ def main() -> None:
     loaded_cfg = load_tools_config(args.workspace)
     tool_defs = get_tool_definitions(args.workspace)
 
-    if not args.tools and len(sys.argv) == 1:
+    if not args.tools and not args.quick and len(sys.argv) == 1:
         run_interactive_wizard(workspace_override=args.workspace, dry_run=args.dry_run)
+        return
+
+    if args.quick:
+        detected_tools = detect_installed_tools(args.workspace)
+        selected = detected_tools if detected_tools else list(tool_defs.keys())
+        scope = "workspace"
+        profile = args.profile or "standard"
+        setup_hook = (args.workspace / ".git").is_dir() or args.hooks
+        plan = create_setup_plan(
+            repo_root=REPO_ROOT,
+            selected_tools=selected,
+            scope=scope,
+            workspace=args.workspace,
+            action=args.action,
+            setup_rules=True,
+            setup_mcp=not args.no_mcp,
+            setup_skills=not args.no_skills,
+            init_custom_config=True,
+            linter_profile=profile,
+            setup_git_hook=setup_hook,
+        )
+        approved = plan
+        print("\n>>> Applying express configuration actions...")
+        execute_setup_plan(approved, args.workspace, action=args.action, dry_run=args.dry_run)
+        print("\n[OK] Express setup complete. AI tools configured successfully.")
         return
 
     tools_arg = args.tools or "all"
@@ -1113,7 +1362,12 @@ def main() -> None:
     if "all" in skill_targets:
         skill_targets = ["antigravity", "claude", "cursor", "windsurf", "cline", "codex"]
 
-    enabled_skills = [name.strip() for name in args.skills.split(",")] if args.skills else loaded_cfg.enabled_skills
+    if args.skill_bundle and args.skill_bundle in SKILL_BUNDLES:
+        bundle_skills = SKILL_BUNDLES[args.skill_bundle]
+        enabled_skills = bundle_skills if bundle_skills else None
+    else:
+        enabled_skills = [name.strip() for name in args.skills.split(",")] if args.skills else loaded_cfg.enabled_skills
+
     disabled_skills = [name.strip() for name in args.exclude_skills.split(",")] if args.exclude_skills else loaded_cfg.disabled_skills
 
     if args.remove:
@@ -1159,6 +1413,7 @@ def main() -> None:
         linter_profile=args.profile,
         linter_disable=disable_rules,
         linter_enable=enable_rules,
+        setup_git_hook=args.hooks,
     )
 
     if not args.yes and sys.stdin.isatty():

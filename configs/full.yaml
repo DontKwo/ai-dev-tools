@@ -1,0 +1,42 @@
+# AI-Dev-Tools Configuration: Full Functionality & Strict Linting
+# Complete active rules, all tools, all skills, pre-commit hook, MCP registered.
+version: 1
+scope: workspace
+write_mode: append
+
+tools:
+  claude: true
+  cursor: true
+  cline: true
+  antigravity: true
+  codex: true
+  windsurf: true
+  copilot: true
+  aider: true
+
+profile:
+  level: strict
+  skip_rules: []
+  description: "All 91 rules active. Strict AST safety, writing hygiene, and code structure."
+
+targets:
+  claude_md: true
+  agents_md: true
+  cursorrules: true
+  clinerules: true
+  windsurfrules: true
+  aider_conventions: true
+  copilot_instructions: true
+
+mcp:
+  enabled: true
+  server_name: ai-dev-tools
+
+skills:
+  enabled: true
+  bundle: all
+  custom_skills: []
+
+hooks:
+  git_pre_commit: true
+  command: "uv run --no-project python scripts/claudemd_linter.py . --diff"
