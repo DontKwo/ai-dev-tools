@@ -1,0 +1,512 @@
+{
+  "run_id": "adt-setup-cdp-verify",
+  "framework": "web",
+  "commit": "HEAD",
+  "interactions": [
+    {
+      "control_id": "main.toggle_theme",
+      "input_kind": "mouse",
+      "trusted": true,
+      "control_state": "enabled",
+      "test_node_id": "cdp_edge_real_dom",
+      "sequence_number": 1,
+      "screen_state_id": "default",
+      "source_hash": "437c159f13b71f55"
+    },
+    {
+      "control_id": "main.toggle_theme",
+      "input_kind": "mouse",
+      "trusted": true,
+      "control_state": "disabled",
+      "test_node_id": "cdp_edge_real_dom",
+      "sequence_number": 2,
+      "screen_state_id": "default",
+      "source_hash": "437c159f13b71f55"
+    },
+    {
+      "control_id": "main.exit_app",
+      "input_kind": "mouse",
+      "trusted": true,
+      "control_state": "enabled",
+      "test_node_id": "cdp_edge_real_dom",
+      "sequence_number": 3,
+      "screen_state_id": "default",
+      "source_hash": "03c6d48a650fabeb"
+    },
+    {
+      "control_id": "main.exit_app",
+      "input_kind": "mouse",
+      "trusted": true,
+      "control_state": "disabled",
+      "test_node_id": "cdp_edge_real_dom",
+      "sequence_number": 4,
+      "screen_state_id": "default",
+      "source_hash": "03c6d48a650fabeb"
+    },
+    {
+      "control_id": "main.workspace_input",
+      "input_kind": "mouse",
+      "trusted": true,
+      "control_state": "enabled",
+      "test_node_id": "cdp_edge_real_dom",
+      "sequence_number": 5,
+      "screen_state_id": "default",
+      "source_hash": "811e03d65c860c24"
+    },
+    {
+      "control_id": "main.workspace_input",
+      "input_kind": "mouse",
+      "trusted": true,
+      "control_state": "disabled",
+      "test_node_id": "cdp_edge_real_dom",
+      "sequence_number": 6,
+      "screen_state_id": "default",
+      "source_hash": "811e03d65c860c24"
+    },
+    {
+      "control_id": "main.auto_detect",
+      "input_kind": "mouse",
+      "trusted": true,
+      "control_state": "enabled",
+      "test_node_id": "cdp_edge_real_dom",
+      "sequence_number": 7,
+      "screen_state_id": "default",
+      "source_hash": "03b30b8872ee7127"
+    },
+    {
+      "control_id": "main.auto_detect",
+      "input_kind": "mouse",
+      "trusted": true,
+      "control_state": "disabled",
+      "test_node_id": "cdp_edge_real_dom",
+      "sequence_number": 8,
+      "screen_state_id": "default",
+      "source_hash": "03b30b8872ee7127"
+    },
+    {
+      "control_id": "main.preset_full",
+      "input_kind": "mouse",
+      "trusted": true,
+      "control_state": "enabled",
+      "test_node_id": "cdp_edge_real_dom",
+      "sequence_number": 9,
+      "screen_state_id": "default",
+      "source_hash": "00f5883c0a1d3e86"
+    },
+    {
+      "control_id": "main.preset_full",
+      "input_kind": "mouse",
+      "trusted": true,
+      "control_state": "disabled",
+      "test_node_id": "cdp_edge_real_dom",
+      "sequence_number": 10,
+      "screen_state_id": "default",
+      "source_hash": "00f5883c0a1d3e86"
+    },
+    {
+      "control_id": "main.preset_strict",
+      "input_kind": "mouse",
+      "trusted": true,
+      "control_state": "enabled",
+      "test_node_id": "cdp_edge_real_dom",
+      "sequence_number": 11,
+      "screen_state_id": "default",
+      "source_hash": "e512f50d9615b1dd"
+    },
+    {
+      "control_id": "main.preset_strict",
+      "input_kind": "mouse",
+      "trusted": true,
+      "control_state": "disabled",
+      "test_node_id": "cdp_edge_real_dom",
+      "sequence_number": 12,
+      "screen_state_id": "default",
+      "source_hash": "e512f50d9615b1dd"
+    },
+    {
+      "control_id": "main.preset_standard",
+      "input_kind": "mouse",
+      "trusted": true,
+      "control_state": "enabled",
+      "test_node_id": "cdp_edge_real_dom",
+      "sequence_number": 13,
+      "screen_state_id": "default",
+      "source_hash": "e7c40eb8777b51a3"
+    },
+    {
+      "control_id": "main.preset_standard",
+      "input_kind": "mouse",
+      "trusted": true,
+      "control_state": "disabled",
+      "test_node_id": "cdp_edge_real_dom",
+      "sequence_number": 14,
+      "screen_state_id": "default",
+      "source_hash": "e7c40eb8777b51a3"
+    },
+    {
+      "control_id": "main.preset_safe",
+      "input_kind": "mouse",
+      "trusted": true,
+      "control_state": "enabled",
+      "test_node_id": "cdp_edge_real_dom",
+      "sequence_number": 15,
+      "screen_state_id": "default",
+      "source_hash": "3d326ef44ec209e8"
+    },
+    {
+      "control_id": "main.preset_safe",
+      "input_kind": "mouse",
+      "trusted": true,
+      "control_state": "disabled",
+      "test_node_id": "cdp_edge_real_dom",
+      "sequence_number": 16,
+      "screen_state_id": "default",
+      "source_hash": "3d326ef44ec209e8"
+    },
+    {
+      "control_id": "main.preset_minimal",
+      "input_kind": "mouse",
+      "trusted": true,
+      "control_state": "enabled",
+      "test_node_id": "cdp_edge_real_dom",
+      "sequence_number": 17,
+      "screen_state_id": "default",
+      "source_hash": "610747b8a1128cf6"
+    },
+    {
+      "control_id": "main.preset_minimal",
+      "input_kind": "mouse",
+      "trusted": true,
+      "control_state": "disabled",
+      "test_node_id": "cdp_edge_real_dom",
+      "sequence_number": 18,
+      "screen_state_id": "default",
+      "source_hash": "610747b8a1128cf6"
+    },
+    {
+      "control_id": "main.tab_tools",
+      "input_kind": "mouse",
+      "trusted": true,
+      "control_state": "enabled",
+      "test_node_id": "cdp_edge_real_dom",
+      "sequence_number": 19,
+      "screen_state_id": "default",
+      "source_hash": "17624b07fc81eeaf"
+    },
+    {
+      "control_id": "main.tab_tools",
+      "input_kind": "mouse",
+      "trusted": true,
+      "control_state": "disabled",
+      "test_node_id": "cdp_edge_real_dom",
+      "sequence_number": 20,
+      "screen_state_id": "default",
+      "source_hash": "17624b07fc81eeaf"
+    },
+    {
+      "control_id": "main.tab_profile",
+      "input_kind": "mouse",
+      "trusted": true,
+      "control_state": "enabled",
+      "test_node_id": "cdp_edge_real_dom",
+      "sequence_number": 21,
+      "screen_state_id": "default",
+      "source_hash": "8d16ce8096890bce"
+    },
+    {
+      "control_id": "main.tab_profile",
+      "input_kind": "mouse",
+      "trusted": true,
+      "control_state": "disabled",
+      "test_node_id": "cdp_edge_real_dom",
+      "sequence_number": 22,
+      "screen_state_id": "default",
+      "source_hash": "8d16ce8096890bce"
+    },
+    {
+      "control_id": "main.tab_features",
+      "input_kind": "mouse",
+      "trusted": true,
+      "control_state": "enabled",
+      "test_node_id": "cdp_edge_real_dom",
+      "sequence_number": 23,
+      "screen_state_id": "default",
+      "source_hash": "38ad5e4d6f0c0d21"
+    },
+    {
+      "control_id": "main.tab_features",
+      "input_kind": "mouse",
+      "trusted": true,
+      "control_state": "disabled",
+      "test_node_id": "cdp_edge_real_dom",
+      "sequence_number": 24,
+      "screen_state_id": "default",
+      "source_hash": "38ad5e4d6f0c0d21"
+    },
+    {
+      "control_id": "main.tab_hooks",
+      "input_kind": "mouse",
+      "trusted": true,
+      "control_state": "enabled",
+      "test_node_id": "cdp_edge_real_dom",
+      "sequence_number": 25,
+      "screen_state_id": "default",
+      "source_hash": "cb9d38369f5635f8"
+    },
+    {
+      "control_id": "main.tab_hooks",
+      "input_kind": "mouse",
+      "trusted": true,
+      "control_state": "disabled",
+      "test_node_id": "cdp_edge_real_dom",
+      "sequence_number": 26,
+      "screen_state_id": "default",
+      "source_hash": "cb9d38369f5635f8"
+    },
+    {
+      "control_id": "profile.scope_select",
+      "input_kind": "mouse",
+      "trusted": true,
+      "control_state": "enabled",
+      "test_node_id": "cdp_edge_real_dom",
+      "sequence_number": 27,
+      "screen_state_id": "default",
+      "source_hash": "6d1223b8891c4741"
+    },
+    {
+      "control_id": "profile.write_mode_select",
+      "input_kind": "mouse",
+      "trusted": true,
+      "control_state": "enabled",
+      "test_node_id": "cdp_edge_real_dom",
+      "sequence_number": 28,
+      "screen_state_id": "default",
+      "source_hash": "e0e1784c54d026e4"
+    },
+    {
+      "control_id": "profile.level_select",
+      "input_kind": "mouse",
+      "trusted": true,
+      "control_state": "enabled",
+      "test_node_id": "cdp_edge_real_dom",
+      "sequence_number": 29,
+      "screen_state_id": "default",
+      "source_hash": "980ba0734c0c8652"
+    },
+    {
+      "control_id": "profile.skip_input",
+      "input_kind": "mouse",
+      "trusted": true,
+      "control_state": "enabled",
+      "test_node_id": "cdp_edge_real_dom",
+      "sequence_number": 30,
+      "screen_state_id": "default",
+      "source_hash": "e1c66a8d43254279"
+    },
+    {
+      "control_id": "profile.skip_input",
+      "input_kind": "mouse",
+      "trusted": true,
+      "control_state": "disabled",
+      "test_node_id": "cdp_edge_real_dom",
+      "sequence_number": 31,
+      "screen_state_id": "default",
+      "source_hash": "e1c66a8d43254279"
+    },
+    {
+      "control_id": "features.mcp_toggle",
+      "input_kind": "mouse",
+      "trusted": true,
+      "control_state": "enabled",
+      "test_node_id": "cdp_edge_real_dom",
+      "sequence_number": 32,
+      "screen_state_id": "default",
+      "source_hash": "fce7626a0c211ed0"
+    },
+    {
+      "control_id": "features.mcp_toggle",
+      "input_kind": "mouse",
+      "trusted": true,
+      "control_state": "disabled",
+      "test_node_id": "cdp_edge_real_dom",
+      "sequence_number": 33,
+      "screen_state_id": "default",
+      "source_hash": "fce7626a0c211ed0"
+    },
+    {
+      "control_id": "features.mcp_name",
+      "input_kind": "mouse",
+      "trusted": true,
+      "control_state": "enabled",
+      "test_node_id": "cdp_edge_real_dom",
+      "sequence_number": 34,
+      "screen_state_id": "default",
+      "source_hash": "34dd675664de4543"
+    },
+    {
+      "control_id": "features.mcp_name",
+      "input_kind": "mouse",
+      "trusted": true,
+      "control_state": "disabled",
+      "test_node_id": "cdp_edge_real_dom",
+      "sequence_number": 35,
+      "screen_state_id": "default",
+      "source_hash": "34dd675664de4543"
+    },
+    {
+      "control_id": "features.skills_toggle",
+      "input_kind": "mouse",
+      "trusted": true,
+      "control_state": "enabled",
+      "test_node_id": "cdp_edge_real_dom",
+      "sequence_number": 36,
+      "screen_state_id": "default",
+      "source_hash": "90a40f9b64c66578"
+    },
+    {
+      "control_id": "features.skills_toggle",
+      "input_kind": "mouse",
+      "trusted": true,
+      "control_state": "disabled",
+      "test_node_id": "cdp_edge_real_dom",
+      "sequence_number": 37,
+      "screen_state_id": "default",
+      "source_hash": "90a40f9b64c66578"
+    },
+    {
+      "control_id": "features.bundle_select",
+      "input_kind": "mouse",
+      "trusted": true,
+      "control_state": "enabled",
+      "test_node_id": "cdp_edge_real_dom",
+      "sequence_number": 38,
+      "screen_state_id": "default",
+      "source_hash": "af881461f2f38df4"
+    },
+    {
+      "control_id": "hooks.pre_commit_toggle",
+      "input_kind": "mouse",
+      "trusted": true,
+      "control_state": "enabled",
+      "test_node_id": "cdp_edge_real_dom",
+      "sequence_number": 39,
+      "screen_state_id": "default",
+      "source_hash": "adaaf74a7d98d321"
+    },
+    {
+      "control_id": "hooks.pre_commit_toggle",
+      "input_kind": "mouse",
+      "trusted": true,
+      "control_state": "disabled",
+      "test_node_id": "cdp_edge_real_dom",
+      "sequence_number": 40,
+      "screen_state_id": "default",
+      "source_hash": "adaaf74a7d98d321"
+    },
+    {
+      "control_id": "hooks.pre_push_toggle",
+      "input_kind": "mouse",
+      "trusted": true,
+      "control_state": "enabled",
+      "test_node_id": "cdp_edge_real_dom",
+      "sequence_number": 41,
+      "screen_state_id": "default",
+      "source_hash": "d44c00a73076f058"
+    },
+    {
+      "control_id": "hooks.pre_push_toggle",
+      "input_kind": "mouse",
+      "trusted": true,
+      "control_state": "disabled",
+      "test_node_id": "cdp_edge_real_dom",
+      "sequence_number": 42,
+      "screen_state_id": "default",
+      "source_hash": "d44c00a73076f058"
+    },
+    {
+      "control_id": "hooks.cmd_input",
+      "input_kind": "mouse",
+      "trusted": true,
+      "control_state": "enabled",
+      "test_node_id": "cdp_edge_real_dom",
+      "sequence_number": 43,
+      "screen_state_id": "default",
+      "source_hash": "48145ad117155170"
+    },
+    {
+      "control_id": "hooks.cmd_input",
+      "input_kind": "mouse",
+      "trusted": true,
+      "control_state": "disabled",
+      "test_node_id": "cdp_edge_real_dom",
+      "sequence_number": 44,
+      "screen_state_id": "default",
+      "source_hash": "48145ad117155170"
+    },
+    {
+      "control_id": "main.preview_btn",
+      "input_kind": "mouse",
+      "trusted": true,
+      "control_state": "enabled",
+      "test_node_id": "cdp_edge_real_dom",
+      "sequence_number": 45,
+      "screen_state_id": "default",
+      "source_hash": "029abd82d41fdb80"
+    },
+    {
+      "control_id": "main.preview_btn",
+      "input_kind": "mouse",
+      "trusted": true,
+      "control_state": "disabled",
+      "test_node_id": "cdp_edge_real_dom",
+      "sequence_number": 46,
+      "screen_state_id": "default",
+      "source_hash": "029abd82d41fdb80"
+    },
+    {
+      "control_id": "main.uninstall_btn",
+      "input_kind": "mouse",
+      "trusted": true,
+      "control_state": "enabled",
+      "test_node_id": "cdp_edge_real_dom",
+      "sequence_number": 47,
+      "screen_state_id": "default",
+      "source_hash": "05b1fd55c5eee89e"
+    },
+    {
+      "control_id": "main.uninstall_btn",
+      "input_kind": "mouse",
+      "trusted": true,
+      "control_state": "disabled",
+      "test_node_id": "cdp_edge_real_dom",
+      "sequence_number": 48,
+      "screen_state_id": "default",
+      "source_hash": "05b1fd55c5eee89e"
+    },
+    {
+      "control_id": "main.apply_btn",
+      "input_kind": "mouse",
+      "trusted": true,
+      "control_state": "enabled",
+      "test_node_id": "cdp_edge_real_dom",
+      "sequence_number": 49,
+      "screen_state_id": "default",
+      "source_hash": "b777bde45cd0f98b"
+    },
+    {
+      "control_id": "main.apply_btn",
+      "input_kind": "mouse",
+      "trusted": true,
+      "control_state": "disabled",
+      "test_node_id": "cdp_edge_real_dom",
+      "sequence_number": 50,
+      "screen_state_id": "default",
+      "source_hash": "b777bde45cd0f98b"
+    }
+  ],
+  "cases": [],
+  "layout_findings": [],
+  "a11y_findings": [],
+  "latency_samples": [],
+  "leak_probes": []
+}

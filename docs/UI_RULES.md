@@ -23,3 +23,13 @@ The UI validation pipeline operates across three tiers:
 1. Static Layer: Toolkit adapters inspect source code and markup to extract declared controls, screens, tooltips, and layout hazards into ui_manifest.json.
 2. Runtime Layer: Framework-specific drivers execute real user inputs, record interaction traces with trusted flags, and output ui_evidence.json.
 3. Join Layer: Claudemd linter compares manifest expectations against runtime evidence, enforcing coverage, combination depth, and layout integrity.
+
+
+---
+
+## Related Documentation
+
+- [Project Overview](../README.md)
+- [112 Linter Rules Reference](LINTER_RULES.md)
+- [Developer Guide](DEVELOPMENT.md)
+- [Security Policy](../SECURITY.md)

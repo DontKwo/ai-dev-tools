@@ -23,6 +23,10 @@ adt apply [OPTIONS]
 
 ### Execution Control
 - `--dry-run`, `-d`: Calculates and outputs the full configuration plan without writing files to disk.
+- `--diff`: Displays exact line-by-line unified diffs for all affected files during plan preview.
+- `--detect`: Auto-detects existing assistants in the workspace and targets only relevant tools.
+- `--uninstall`: Cleanly uninstalls ai-dev-tools instructions, skills, hooks, and restores backups.
+- `--restore-backups`: Restores original `.bak` backups during uninstallation (default: True).
 - `--yes`, `-y`: Bypasses the confirmation prompt and applies changes immediately.
 - `--json`: Outputs the complete execution plan and data-loss checks as JSON for integration with tools and scripts.
 
@@ -57,3 +61,29 @@ python scripts/apply_config.py --tools claude,cursor --write-mode append --yes
 ```bash
 python scripts/apply_config.py --json > plan.json
 ```
+
+### Preview changes with exact file diffs
+```bash
+adt apply --diff --dry-run
+```
+
+### Auto-detect workspace assistants
+```bash
+adt detect
+```
+
+### Cleanly uninstall and restore backups
+```bash
+adt uninstall
+```
+
+
+---
+
+## Related Documentation
+
+- [Project Overview](../../README.md)
+- [Developer Guide](../DEVELOPMENT.md)
+- [YAML Configuration Guide](yaml-guide.md)
+- [Rule Profiles Reference](profiles.md)
+- [Security Policy](../../SECURITY.md)

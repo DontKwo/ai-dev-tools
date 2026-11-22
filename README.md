@@ -1,132 +1,86 @@
-# ai-dev-tools
+<p align="center">
+  <img src="assets/logo.png" alt="AI-Dev-Tools Logo" width="240" />
+</p>
 
-Make AI coding assistants self-verifying, token-efficient, and regression-free.
+# AI-Dev-Tools
 
-`ai-dev-tools` equips AI coding environments (Claude Code, Cursor, Google Antigravity, Cline, Windsurf, Codex, and GitHub Copilot) with unified rules, automated AST linting, and autonomous agent skills. Instead of relying solely on natural language prompts, the tool suite programmatically enforces code quality, catches hallucinations, and verifies correctness.
+**Configure clean coding rules, safety checks, and skills for your AI coding assistants in one click.**
 
----
-
-## Interactive Setup: Choose Your Path
-
-AI-Dev-Tools provides two streamlined setup paths:
-
-### Path A: Standalone Setup GUI (Common Users)
-
-No Python commands or file editing required. Built automatically on every release.
-
-1. Download the standalone executable for your operating system:
-   - **Windows**: `adt-setup.exe`
-   - **Linux**: `adt-setup-linux`
-   - **macOS**: `adt-setup-macos`
-2. Run the application to inspect your target workspace.
-3. Choose your assistants, review the live safety check, and click **Apply Changes**.
-
-*Or launch from source:* `python scripts/setup_gui.py` (or `adt gui`).
-
-Detailed guide: [Everyday User Quickstart](docs/user/quickstart.md).
+AI-Dev-Tools gives you a simple graphical setup app that equips **Claude Code**, **Cursor**, **Google Antigravity**, **GitHub Copilot**, **Cline**, **Windsurf**, and **Aider** with consistent engineering guardrails. Everything runs locally on your computer with automatic backups and one-click undo.
 
 ---
 
-### Path B: Declarative YAML & CLI (Power Users)
+## Download
 
-Edit the configuration directly in any text editor and apply with flags:
-
-1. Open [config.yaml](config.yaml) (shipped with full functionality and strict linting by default).
-2. Choose your active assistants, write mode (`append`, `overwrite`, or `skip`), and rule profile.
-3. Apply the settings via terminal:
-   ```bash
-   python scripts/apply_config.py --config config.yaml
-   ```
-4. Optional dry-run preview:
-   ```bash
-   python scripts/apply_config.py --config config.yaml --dry-run
-   ```
-
-Preset configurations are available in `configs/`:
-- `configs/full.yaml` (Full functionality, all tools, all skills, strict linting)
-- `configs/strict.yaml` (Strict profile for core assistants)
-- `configs/standard.yaml` (Relaxed prose and comment styling)
-- `configs/safe.yaml` (Essential bug, package, and secret safeguards with zero style churn)
-- `configs/minimal.yaml` (Lightweight setup)
-
-Detailed guides:
-- [YAML Configuration Guide](docs/power-users/yaml-guide.md)
-- [CLI Reference](docs/power-users/cli-reference.md)
-- [Rule Strictness Profiles](docs/power-users/profiles.md)
-
----
-
-## Documentation by Role
-
-| Audience | Documentation | Description |
+| Platform | Download | How to Install |
 | :--- | :--- | :--- |
-| **Everyday Users** | [User Quickstart](docs/user/quickstart.md) | 3-step setup via executable, zero terminal commands |
-| **Power Users** | [YAML Guide](docs/power-users/yaml-guide.md) | Complete key-by-key schema documentation for `config.yaml` |
-| **Power Users** | [CLI Reference](docs/power-users/cli-reference.md) | Flags, dry-run previews, JSON output, and automation |
-| **Power Users** | [Rule Profiles](docs/power-users/profiles.md) | Full vs Standard vs Safe profile comparison |
-| **Developers** | [Architecture Manual](docs/developer/architecture.md) | Execution engine, data-loss protection, and CI build pipeline |
-| **Developers** | [Extending Guide](docs/developer/extending.md) | Adding assistants, custom skills, and custom linter rules |
-| **Reference** | [91 Linter Rules](docs/LINTER_RULES.md) | Complete catalog of AST safety, security, and quality rules |
+| **Windows** | [adt-setup-Windows.exe](https://github.com/DontKwo/ai-dev-tools/releases/latest/download/adt-setup-Windows.exe) | [Windows Install Steps](docs/INSTALLATION.md#windows) |
+| **macOS** | [adt-setup-macOS.zip](https://github.com/DontKwo/ai-dev-tools/releases/latest/download/adt-setup-macOS.zip) | [macOS Install Steps](docs/INSTALLATION.md#macos) |
+| **Linux** | [adt-setup-Linux.tar.gz](https://github.com/DontKwo/ai-dev-tools/releases/latest/download/adt-setup-Linux.tar.gz) | [Linux Install Steps](docs/INSTALLATION.md#linux) |
+
+Browse release notes on [All Releases](https://github.com/DontKwo/ai-dev-tools/releases/latest).
 
 ---
 
-## Install as an Agent Plugin
+## Screenshots
 
-Install skills directly into your agent harness:
-
-- **Claude Code**: `/plugin marketplace add DontKwo/ai-dev-tools` then `/plugin install ai-dev-tools@ai-dev-tools`
-- **GitHub Copilot CLI**: `copilot plugin marketplace add DontKwo/ai-dev-tools` then `copilot plugin install ai-dev-tools@ai-dev-tools`
-- **VS Code**: Add `"DontKwo/ai-dev-tools"` to `chat.plugins.marketplaces` in `settings.json`
-- **Gemini CLI**: `gemini skills install https://github.com/DontKwo/ai-dev-tools.git`
-- **Universal (skills.sh)**: `npx skills@latest add DontKwo/ai-dev-tools`
+<p align="center">
+  <img src="assets/screenshots/01_main.png" alt="AI-Dev-Tools Setup Assistant Main Screen" width="760" />
+</p>
 
 ---
 
-## Everyday Developer Commands
+## How to Use
 
-You can run individual tool commands (`ailint`, `aifix`, `aitest`, `aidoctor`) or use the unified CLI dispatcher `adt`:
-
-| Command | Alternative | Direct Script | Description |
-|:---|:---|:---|:---|
-| `adt lint` | `ailint` | `scripts/claudemd_linter.py` | Run 91-rule AST and style linter on git diffs (`--profile safe\|standard\|strict`). |
-| `adt fix` | `aifix` | `scripts/lint_fixer.py` | Apply deterministic auto-fixes (operators, formatting, quotes). |
-| `adt test` | `aitest` | `scripts/smart_test_runner.py` | Run only test suites impacted by changed files. |
-| `adt doctor` | `aidoctor` | `scripts/doctor.py` | Audit tool configuration, environment paths, and health. |
-| `adt apply` | - | `scripts/apply_config.py` | Apply declarative YAML configuration with dry-run support. |
-| `adt gui` | - | `scripts/setup_gui.py` | Launch interactive graphical setup wizard. |
+1. **Download `AI-Dev-Tools`** from the table above for Windows, macOS, or Linux.
+2. **Launch the Setup Assistant** following [Desktop Installation Guide](docs/INSTALLATION.md) if your OS displays an unverified-app prompt.
+3. **Choose your workspace folder** and click **Auto-Detect** to select the AI assistants in your project.
+4. **Click "Preview Changes"** to inspect exact edits, then click **Apply Changes** (or **Clean Uninstall** to restore backups anytime).
 
 ---
 
-## Pre-Commit Integration
+## Key Features
 
-Add `ai-dev-tools` to your `.pre-commit-config.yaml` to verify changes before commit:
-
-```yaml
-repos:
-  - repo: https://github.com/DontKwo/ai-dev-tools
-    rev: v0.2.0
-    hooks:
-      - id: adt-lint
-      - id: adt-secrets
-```
+- **Multi-Assistant Setup**: Configures `CLAUDE.md`, `AGENTS.md`, `.cursorrules`, `.clinerules`, and Copilot rules together.
+- **Built-In Safety Backups**: Saves `.bak` copies before overwriting existing files and supports clean one-click uninstall.
+- **112 Automated Checks**: Keeps codebases clean, strongly typed, and uniform across repositories.
+- **100% Local**: No accounts, cloud syncing, or subscriptions required.
 
 ---
 
-## GitHub Actions CI/CD Integration
+## Safety & Disclaimers
 
-Verify code quality and guardrails on pull requests using the composite action:
+- **Official `main` Releases Only**: Download installers exclusively from [DontKwo/ai-dev-tools Releases](https://github.com/DontKwo/ai-dev-tools/releases/latest) (`main` branch). Never run forked builds unless you are sure they contain no malware; only official `main` releases are maintained by the author, and I make no promises.
+- **OS Security Warnings**: Windows SmartScreen and macOS Gatekeeper will likely warn that independently built executables are unrecognized or unsafe. Bypassing prompts is strictly at your own discretion following [Desktop Installation Guide](docs/INSTALLATION.md).
+- **Workspace Modification & AS-IS Disclaimer**: This tool creates and updates configuration, instruction, skill, and git hook files inside folders you select. Provided "AS IS" under the [MIT License](LICENSE) with zero warranty or liability; review change previews and back up files at your own risk.
 
-```yaml
-# .github/workflows/ai-guardrails.yml
-name: AI Guardrails
-on: [push, pull_request]
+---
 
-jobs:
-  verify:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: DontKwo/ai-dev-tools@main
-        with:
-          profile: strict
-```
+## Documentation
+
+### User Documentation
+- [User Guide](docs/USER_GUIDE.md)
+- [Everyday Quickstart](docs/user/quickstart.md)
+- [Desktop Installation Guide](docs/INSTALLATION.md)
+- [Frequently Asked Questions](docs/FAQ.md)
+
+### Developer Documentation
+- [Developer Guide](docs/DEVELOPMENT.md)
+- [Developer uv Installation](docs/UV_INSTALLATION.md)
+- [CLI Reference](docs/power-users/cli-reference.md)
+- [YAML Configuration Guide](docs/power-users/yaml-guide.md)
+- [Rule Profiles Reference](docs/power-users/profiles.md)
+
+### AI, Mathematical Proof & Technical Documentation
+- [AI Agent Rules](AGENTS.md)
+- [System Architecture](docs/ARCHITECTURE.md)
+- [112 Linter Rules Reference](docs/LINTER_RULES.md)
+- [Developer Manual](docs/DEV_MANUAL.md)
+- [Agent Skills Guide](docs/SKILLS_GUIDE.md)
+- [Rule Files Reference](docs/RULE_FILES.md)
+- [UI Quality Rules](docs/UI_RULES.md)
+
+### Legal & Security Policies
+- [Security Policy](SECURITY.md)
+- [Third-Party Notices](THIRD_PARTY_NOTICES.md)
+- [MIT License](LICENSE)

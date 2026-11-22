@@ -103,7 +103,8 @@ def validate_markdown_file(file_path: Path, repo_root: Path, check_external: boo
 
 EXCLUDED_DIR_NAMES = {
     "node_modules", ".git", "dist", "build", ".venv", "venv",
-    ".gemini", ".agent", ".agents", ".claude", ".cursor", "__pycache__"
+    ".gemini", ".agent", ".agents", ".claude", ".cursor", "__pycache__",
+    "repo_blueprint",
 }
 
 

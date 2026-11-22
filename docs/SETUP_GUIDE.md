@@ -85,3 +85,14 @@ uv run --no-project python -m unittest discover tests
 # Verify global terminal shortcuts
 ailint --help
 ```
+
+
+---
+
+## Related Documentation
+
+- [Project Overview](../README.md)
+- [Desktop Installation Guide](INSTALLATION.md)
+- [Developer uv Installation Guide](UV_INSTALLATION.md)
+- [Developer Guide](DEVELOPMENT.md)
+- [Security Policy](../SECURITY.md)

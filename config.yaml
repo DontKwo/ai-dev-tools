@@ -16,18 +16,23 @@ scope: workspace
 write_mode: append
 
 # Target AI assistants to configure
+# Toggle assistants individually or run 'adt detect' to auto-select only assistants found in this workspace.
 tools:
-  claude: true
-  cursor: true
-  cline: true
-  antigravity: true
-  codex: true
-  windsurf: true
-  copilot: true
-  aider: true
+  claude: true       # Anthropic Claude Code CLI & Claude Desktop (CLAUDE.md)
+  cursor: true       # Cursor IDE (.cursorrules & .cursor/rules/)
+  cline: true        # Cline & Roo Code VS Code extension (.clinerules)
+  antigravity: true  # Google Antigravity & Agent tools (AGENTS.md)
+  codex: true        # OpenAI Codex & ChatGPT developer tools (.codex/)
+  windsurf: true     # Codeium Windsurf IDE (.windsurfrules)
+  copilot: true      # GitHub Copilot (.github/copilot-instructions.md)
+  aider: true        # Aider paired programming assistant (.aider.conventions.md)
 
 # Rule Profile: Controls linter strictness and instruction depth
-# Built-in levels: 'full', 'strict', 'standard', 'safe', 'minimal'
+# Built-in profile levels:
+# - 'strict': Default verification (91 rules: AST safety, typing, anti-slop, formatting, clean structure)
+# - 'standard': Core safety, relaxes comment length and math variables
+# - 'safe': Essential runtime safety (crashes, bad syntax, hallucinated imports, secrets)
+# - 'minimal': Critical runtime guards only
 profile:
   level: strict
   skip_rules: []
@@ -43,19 +48,23 @@ targets:
   aider_conventions: true
   copilot_instructions: true
 
-# Model Context Protocol (MCP) servers configuration
+# Model Context Protocol (MCP) server configuration
+# Registers repository tools with MCP clients (Claude Desktop, Cursor, Antigravity, Windsurf).
+# Scoped to repository root for read-only search, AST inspection, and linter diagnostics.
 mcp:
   enabled: true
   server_name: ai-dev-tools
 
 # AI agent skills configuration
-# Bundles: 'all' (all 20+ skills), 'core', 'architecture', 'context', 'workflow', 'none'
+# Installs specialized agent skills (debugging, review, testing, encoding) into target assistant folders.
+# Available bundles: 'all' (all 20+ skills), 'core', 'architecture', 'context', 'workflow', 'none'
 skills:
   enabled: true
   bundle: all
   custom_skills: []
 
 # Git hooks automation
+# Runs fast diff-scoped linter verification on staged files before git commits.
 hooks:
   git_pre_commit: true
   command: "uv run --no-project python scripts/claudemd_linter.py . --diff"

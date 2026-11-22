@@ -111,3 +111,14 @@ Preview changes and inspect data loss warnings before writing:
 ```bash
 python scripts/apply_config.py --config config.yaml --dry-run
 ```
+
+
+---
+
+## Related Documentation
+
+- [Project Overview](../../README.md)
+- [CLI Reference](cli-reference.md)
+- [Rule Profiles Reference](profiles.md)
+- [Developer Guide](../DEVELOPMENT.md)
+- [Security Policy](../../SECURITY.md)

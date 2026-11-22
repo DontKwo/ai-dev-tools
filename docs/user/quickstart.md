@@ -8,11 +8,11 @@ Download the standalone setup application for your operating system:
 
 | Platform | Download File |
 | :--- | :--- |
-| **Windows** | `adt-setup.exe` |
-| **Linux** | `adt-setup-linux` |
-| **macOS** | `adt-setup-macos` |
+| **Windows** | `adt-setup-Windows.exe` |
+| **macOS** | `adt-setup-macOS.zip` |
+| **Linux** | `adt-setup-Linux.tar.gz` |
 
-Prebuilt binaries are available under the **Releases** or **Actions** tab of this repository. No Python installation is required.
+Prebuilt binaries are available on [Latest Releases](https://github.com/DontKwo/ai-dev-tools/releases/latest). Follow [Desktop Installation Guide](../INSTALLATION.md) if your OS displays a security prompt.
 
 ## Step 2: Open the Setup Assistant
 
@@ -36,9 +36,11 @@ You are done. Your AI tools will now adhere to clean coding standards, AST verif
 
 ---
 
-## Need More Details?
+## Related Documentation
 
-- To customize rules via YAML: see [YAML Configuration Guide](../power-users/yaml-guide.md).
-- To run automated setup in terminal or scripts: see [CLI Reference](../power-users/cli-reference.md).
-- To understand profiles and strictness levels: see [Rule Profiles](../power-users/profiles.md).
-- For developer documentation: see [Developer Architecture](../developer/architecture.md).
+- [Project Overview](../../README.md)
+- [Desktop Installation Guide](../INSTALLATION.md)
+- [YAML Configuration Guide](../power-users/yaml-guide.md)
+- [CLI Reference](../power-users/cli-reference.md)
+- [Rule Profiles](../power-users/profiles.md)
+- [Developer Architecture](../developer/architecture.md)

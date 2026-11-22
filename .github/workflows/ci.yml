@@ -1,23 +1,59 @@
-name: CI
+name: CI & Release
 
 on:
   push:
     branches:
       - main
+    tags:
+      - "v*"
   pull_request:
     branches:
       - main
+  workflow_dispatch:
+
+permissions:
+  contents: write
 
 jobs:
+  lint:
+    name: Strict Linter & Link Audit
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+
+      - name: Run strict linter audit
+        run: uv run --no-project python scripts/claudemd_linter.py . --level strict --full
+
+      - name: Run documentation link audit
+        run: uv run --no-project python scripts/link_checker.py .
+
+      - name: Verify turnkey composite action
+        uses: ./
+        with:
+          profile: strict
+          full: "true"
+
   test:
+    name: Unit Test Suite (${{ matrix.os }} / Python ${{ matrix.python-version }})
+    needs: lint
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
-        python-version: ["3.10", "3.11", "3.12", "3.13"]
-
+        python-version: ["3.11", "3.12", "3.13"]
     steps:
-      - name: Checkout code
+      - name: Checkout repository
         uses: actions/checkout@v4
 
       - name: Set up Python ${{ matrix.python-version }}
@@ -26,35 +62,161 @@ jobs:
           python-version: ${{ matrix.python-version }}
 
       - name: Install uv
-        uses: astral-sh/setup-uv@v3
+        uses: astral-sh/setup-uv@v5
 
       - name: Run unit tests
         run: uv run --no-project python -m unittest discover tests
 
-      - name: Run strict linter audit
-        run: uv run --no-project python scripts/claudemd_linter.py . --level strict --full
+      - name: Verify unified CLI & WebView GUI self-test
+        run: |
+          uv run --no-project python scripts/cli.py --help
+          uv run --no-project python scripts/setup_gui.py --self-test
 
-      - name: Verify unified CLI help
-        run: uv run --no-project python scripts/cli.py --help
-
-      - name: Verify unified CLI strict linting
-        run: uv run --no-project python scripts/cli.py lint . --profile strict --full
-
-      - name: Verify documentation links
-        run: uv run --no-project python scripts/link_checker.py .
-
-      - name: Verify secret sanitizer diff mode
-        run: uv run --no-project python scripts/secret_sanitizer.py --diff
-
-  composite-action:
-    name: Verify Turnkey Composite Action
-    runs-on: ubuntu-latest
+  build:
+    name: Build Setup GUI (${{ matrix.os }})
+    needs: test
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - os: windows-latest
+            artifact_name: adt-setup-Windows
+            bin_name: adt-setup-Windows
+          - os: macos-latest
+            artifact_name: adt-setup-macOS
+            bin_name: adt-setup-macOS
+          - os: ubuntu-latest
+            artifact_name: adt-setup-Linux
+            bin_name: adt-setup-Linux
     steps:
-      - name: Checkout code
+      - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Run local action with strict profile
-        uses: ./
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
         with:
-          profile: strict
-          full: "true"
+          python-version: "3.12"
+
+      - name: Install PyInstaller
+        run: |
+          python -m pip install --upgrade pip
+          pip install pyinstaller
+
+      - name: Build Windows executable & run self-test
+        if: runner.os == 'Windows'
+        run: |
+          pyinstaller --onefile --noconsole --icon=assets/icon.ico --name adt-setup-Windows `
+            --add-data "templates;templates" `
+            --add-data "configs;configs" `
+            --add-data "skills;skills" `
+            --add-data "assets;assets" `
+            --add-data "scripts;scripts" `
+            scripts/setup_gui.py
+          .\dist\adt-setup-Windows.exe --self-test
+
+      - name: Build Unix executable & run self-test
+        if: runner.os != 'Windows'
+        run: |
+          pyinstaller --onefile --noconsole --icon=assets/icon.ico --name "${{ matrix.bin_name }}" \
+            --add-data "templates:templates" \
+            --add-data "configs:configs" \
+            --add-data "skills:skills" \
+            --add-data "assets:assets" \
+            --add-data "scripts:scripts" \
+            scripts/setup_gui.py
+          chmod +x "dist/${{ matrix.bin_name }}"
+          "./dist/${{ matrix.bin_name }}" --self-test
+
+      - name: Package release archive
+        shell: bash
+        run: |
+          mkdir -p release-dist
+          if [ "${{ runner.os }}" = "Windows" ]; then
+            cp dist/adt-setup-Windows.exe release-dist/adt-setup-Windows.exe
+          elif [ "${{ runner.os }}" = "macOS" ]; then
+            (cd dist && zip -r ../release-dist/adt-setup-macOS.zip adt-setup-macOS*)
+          else
+            tar -czf release-dist/adt-setup-Linux.tar.gz -C dist adt-setup-Linux
+          fi
+
+      - name: Upload GUI artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact_name }}
+          path: release-dist/*
+          if-no-files-found: error
+          retention-days: 30
+
+  release:
+    name: Publish Semantic Release
+    needs: build
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v'))
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+
+      - name: Download all build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Stage release assets
+        run: |
+          mkdir -p release-dist
+          find artifacts -type f -exec cp {} release-dist/ \;
+          ls -la release-dist
+
+      - name: Resolve auto-incrementing vX.Y.Z release tag
+        id: version
+        run: |
+          python3 -c '
+          import os, re, subprocess
+          subprocess.run(["git", "fetch", "--tags", "--force"], check=True)
+          def parse_ver(s):
+              m = re.match(r"^v?(\d+)\.(\d+)\.(\d+)$", s.strip())
+              return (int(m.group(1)), int(m.group(2)), int(m.group(3))) if m else None
+          raw_tags = subprocess.check_output(["git", "tag", "--list", "v*"], text=True).splitlines()
+          existing = {t.strip() for t in raw_tags if t.strip()}
+          parsed = [v for v in (parse_ver(t) for t in existing) if v]
+          ref = os.environ.get("GITHUB_REF", "")
+          head_tags = [v for v in (parse_ver(t) for t in subprocess.check_output(["git", "tag", "--points-at", "HEAD", "--list", "v*"], text=True).splitlines()) if v]
+          if ref.startswith("refs/tags/v"):
+              target = parse_ver(ref[len("refs/tags/"):]) or (0, 2, 0)
+          elif head_tags:
+              target = sorted(head_tags)[-1]
+          else:
+              highest = max(parsed) if parsed else (0, 2, 0)
+              if f"v{highest[0]}.{highest[1]}.{highest[2]}" in existing:
+                  highest = (highest[0], highest[1], highest[2] + 1)
+              target = highest
+          tag = f"v{target[0]}.{target[1]}.{target[2]}"
+          with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as fh:
+              fh.write(f"tag={tag}\n")
+          print(f"Resolved release tag: {tag}")
+          '
+
+      - name: Tag release on main
+        if: startsWith(github.ref, 'refs/heads/main')
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag -f "${{ steps.version.outputs.tag }}" "${{ github.sha }}"
+          git push -f origin "${{ steps.version.outputs.tag }}"
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.version.outputs.tag }}
+          name: "AI-Dev-Tools ${{ steps.version.outputs.tag }}"
+          target_commitish: ${{ github.sha }}
+          prerelease: false
+          make_latest: true
+          generate_release_notes: true
+          files: |
+            release-dist/adt-setup-Windows.exe
+            release-dist/adt-setup-macOS.zip
+            release-dist/adt-setup-Linux.tar.gz

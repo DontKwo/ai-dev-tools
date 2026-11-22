@@ -129,3 +129,15 @@ When you need specific diagnostics from the command line:
 - [docs/LINTER_RULES.md](LINTER_RULES.md): Specifications for all 91 linter rules.
 - [docs/SETUP_GUIDE.md](SETUP_GUIDE.md): Installation details across operating systems.
 - [docs/FAQ.md](FAQ.md): Common questions, verification levels, and rule suppressions.
+
+
+---
+
+## Related Documentation
+
+- [Project Overview](../README.md)
+- [Desktop Installation Guide](INSTALLATION.md)
+- [Everyday Quickstart](user/quickstart.md)
+- [Frequently Asked Questions](FAQ.md)
+- [Developer Guide](DEVELOPMENT.md)
+- [Security Policy](../SECURITY.md)

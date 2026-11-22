@@ -71,6 +71,7 @@ class AiToolsConfig:
     linter_profiles: dict[str, dict[str, Any]] = field(default_factory=dict)
     linter_ui_evidence: str = ""
     ui_frameworks: list[str] = field(default_factory=list)
+    single_os: str = ""
     config_path: Path | None = None
 
     def is_skill_enabled(self, skill_name: str) -> bool:
@@ -289,6 +290,10 @@ def _build_config_from_dict(data: dict[str, Any], path: Path) -> AiToolsConfig:
     ui_sec = data.get("ui", {})
     if isinstance(ui_sec, dict) and "frameworks" in ui_sec:
         cfg.ui_frameworks = [str(item) for item in ui_sec.get("frameworks", [])]
+
+    proj_sec = data.get("project", {})
+    if isinstance(proj_sec, dict) and "single_os" in proj_sec:
+        cfg.single_os = str(proj_sec.get("single_os", "")).strip().lower()
 
     return cfg
 

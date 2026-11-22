@@ -41,12 +41,33 @@ fi
 {END_MARKER}"""
 
 
-def create_hook_content() -> str:
+def _create_pre_push_block() -> str:
+    linter_posix = str(LINTER_SCRIPT).replace("\\", "/")
+    link_posix = str(REPO_ROOT / "scripts" / "link_checker.py").replace("\\", "/")
+    return f"""{BEGIN_MARKER}
+echo "Running strict repository lint and documentation link check..."
+if command -v uv >/dev/null 2>&1; then
+    uv run --no-project python "{linter_posix}" . --diff --level strict && uv run --no-project python "{link_posix}" .
+else
+    {PYTHON_CMD} "{linter_posix}" . --diff --level strict && {PYTHON_CMD} "{link_posix}" .
+fi
+if [ $? -ne 0 ]; then
+    echo ""
+    echo "[!] PUSH REJECTED: strict linter or link_checker found violations."
+    echo "    Fix all violations before pushing or bypass only with: git push --no-verify"
+    exit 1
+fi
+{END_MARKER}"""
+
+
+def create_hook_content(hook_type: str = "pre-commit") -> str:
+    if hook_type == "pre-push":
+        return f"{SHEBANG}\n{_create_pre_push_block()}\n"
     return f"{SHEBANG}\n{create_hook_block()}\n"
 
 
-def merge_block(existing: str) -> str:
-    block = create_hook_block()
+def merge_block(existing: str, hook_type: str = "pre-commit") -> str:
+    block = _create_pre_push_block() if hook_type == "pre-push" else create_hook_block()
     if BEGIN_MARKER in existing and END_MARKER in existing:
         return BLOCK_RE.sub(lambda _match: f"\n{block}\n", existing, count=1).lstrip("\n")
     lines = existing.splitlines()
@@ -70,7 +91,7 @@ def choose_action(hook_file: Path) -> str:
     return "append"
 
 
-def install_hook(target_repo: Path, action: str = "append") -> None:
+def install_hook(target_repo: Path, action: str = "append", hook_type: str = "pre-commit") -> None:
     git_dir = target_repo / ".git"
     if not git_dir.is_dir():
         print(f"[!] Error: {target_repo} is not a git repository (.git folder not found).")
@@ -78,7 +99,7 @@ def install_hook(target_repo: Path, action: str = "append") -> None:
 
     hooks_dir = git_dir / "hooks"
     hooks_dir.mkdir(parents=True, exist_ok=True)
-    hook_file = hooks_dir / "pre-commit"
+    hook_file = hooks_dir / hook_type
 
     if hook_file.exists():
         chosen = choose_action(hook_file) if action == "ask" else action
@@ -86,15 +107,15 @@ def install_hook(target_repo: Path, action: str = "append") -> None:
             print(f"[-] Skipped: {hook_file}")
             return
         if chosen == "overwrite":
-            hook_file.write_text(create_hook_content(), encoding="utf-8")
-            print(f"[+] Overwrote pre-commit hook at: {hook_file}")
+            hook_file.write_text(create_hook_content(hook_type), encoding="utf-8")
+            print(f"[+] Overwrote {hook_type} hook at: {hook_file}")
         else:
             existing = hook_file.read_text(encoding="utf-8", errors="replace")
-            hook_file.write_text(merge_block(existing), encoding="utf-8")
-            print(f"[+] Added linter block to pre-commit hook: {hook_file}")
+            hook_file.write_text(merge_block(existing, hook_type), encoding="utf-8")
+            print(f"[+] Added linter block to {hook_type} hook: {hook_file}")
     else:
-        hook_file.write_text(create_hook_content(), encoding="utf-8")
-        print(f"[+] Created pre-commit hook at: {hook_file}")
+        hook_file.write_text(create_hook_content(hook_type), encoding="utf-8")
+        print(f"[+] Created {hook_type} hook at: {hook_file}")
 
     try:
         hook_file.chmod(hook_file.stat().st_mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
@@ -102,15 +123,15 @@ def install_hook(target_repo: Path, action: str = "append") -> None:
         return
 
 
-def uninstall_hook(target_repo: Path) -> None:
-    hook_file = target_repo / ".git" / "hooks" / "pre-commit"
+def uninstall_hook(target_repo: Path, hook_type: str = "pre-commit") -> None:
+    hook_file = target_repo / ".git" / "hooks" / hook_type
     if not hook_file.is_file():
-        print(f"[-] No pre-commit hook found in {target_repo}")
+        print(f"[-] No {hook_type} hook found in {target_repo}")
         return
 
     existing = hook_file.read_text(encoding="utf-8", errors="replace")
     if BEGIN_MARKER not in existing or END_MARKER not in existing:
-        print(f"[-] Pre-commit hook has no ai-dev-tools block, left untouched: {hook_file}")
+        print(f"[-] {hook_type} hook has no ai-dev-tools block, left untouched: {hook_file}")
         return
 
     remainder = BLOCK_RE.sub("\n", existing, count=1)
@@ -119,21 +140,25 @@ def uninstall_hook(target_repo: Path) -> None:
         hook_file.write_text(remainder.strip("\n") + "\n", encoding="utf-8")
     else:
         hook_file.unlink()
-    print(f"[+] Removed pre-commit hook block from {hook_file}")
+    print(f"[+] Removed {hook_type} hook block from {hook_file}")
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Install claudemd_linter git pre-commit hook.")
+    parser = argparse.ArgumentParser(description="Install claudemd_linter git pre-commit and pre-push hooks.")
     parser.add_argument("target", nargs="?", default=".", help="Target git repository path (default: current directory)")
-    parser.add_argument("--uninstall", action="store_true", help="Remove only the ai-dev-tools block from the pre-commit hook")
+    parser.add_argument("--uninstall", action="store_true", help="Remove only the ai-dev-tools block from the hook")
+    parser.add_argument("--pre-push", action="store_true", help="Target the git pre-push hook instead of pre-commit")  # noqa: 5
+    parser.add_argument("--all-hooks", action="store_true", help="Install or remove both pre-commit and pre-push hooks")
     parser.add_argument("--action", choices=["ask", "overwrite", "append", "skip"], default="append")
     args = parser.parse_args()
 
     target = Path(args.target).resolve()
-    if args.uninstall:
-        uninstall_hook(target)
-    else:
-        install_hook(target, action=args.action)
+    hook_types = ["pre-commit", "pre-push"] if args.all_hooks else (["pre-push"] if args.pre_push else ["pre-commit"])
+    for hook_type in hook_types:
+        if args.uninstall:
+            uninstall_hook(target, hook_type=hook_type)
+        else:
+            install_hook(target, action=args.action, hook_type=hook_type)
 
 
 if __name__ == "__main__":

@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AI-Dev-Tools Setup Assistant</title>
+  <link rel="icon" type="image/png" href="/assets/icon.png" />
+  <link rel="stylesheet" href="/setup_gui_theme.css" />
+</head>
+<body>
+  <main class="app-shell">
+    <header class="topbar">
+      <div class="brand-row">
+        <img class="brand-icon" src="/assets/icon.png" alt="AI-Dev-Tools Icon" />
+        <div>
+          <h1 class="brand-title">AI-Dev-Tools Setup Assistant</h1>
+          <p class="brand-subtitle">Configure coding standards, skills, MCP servers, and git guardrails locally.</p>
+        </div>
+      </div>
+      <div class="row-flex">
+        <button type="button" data-testid="main.toggle_theme" onclick="toggleTheme()">Toggle Theme</button>
+        <button type="button" data-testid="main.exit_app" onclick="shutdownApp()">Close</button>
+      </div>
+    </header>
+
+    <section class="card">
+      <div class="row-flex">
+        <label for="workspaceInput"><strong>Target Workspace</strong></label>
+        <input data-testid="main.workspace_input" id="workspaceInput" class="grow" type="text" aria-label="Target Workspace Path" />
+        <button type="button" data-testid="main.auto_detect" onclick="autoDetectTools()">Auto-Detect</button>
+      </div>
+      <div class="row-flex" style="margin-top: 12px;">
+        <span><strong>Presets:</strong></span>
+        <button type="button" data-testid="main.preset_full" onclick="applyPreset('full')">Full (Default)</button>
+        <button type="button" data-testid="main.preset_strict" onclick="applyPreset('strict')">Strict</button>
+        <button type="button" data-testid="main.preset_standard" onclick="applyPreset('standard')">Standard</button>
+        <button type="button" data-testid="main.preset_safe" onclick="applyPreset('safe')">Safe</button>
+        <button type="button" data-testid="main.preset_minimal" onclick="applyPreset('minimal')">Minimal</button>
+      </div>
+    </section>
+
+    <nav class="tabs" aria-label="Configuration Sections">
+      <button type="button" class="tab-btn active" data-testid="main.tab_tools" onclick="selectTab('tools', this)">AI Assistants &amp; Targets</button>
+      <button type="button" class="tab-btn" data-testid="main.tab_profile" onclick="selectTab('profile', this)">Linter &amp; Scope</button>
+      <button type="button" class="tab-btn" data-testid="main.tab_features" onclick="selectTab('features', this)">Skills &amp; MCP</button>
+      <button type="button" class="tab-btn" data-testid="main.tab_hooks" onclick="selectTab('hooks', this)">Git Hooks &amp; Safety</button>
+    </nav>
+
+    <section id="panel-tools" class="card">
+      <div class="grid-2">
+        <div>
+          <h3>AI Assistants</h3>
+          <div id="toolsList"></div>
+        </div>
+        <div>
+          <h3>Instruction Files</h3>
+          <div id="targetsList"></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="panel-profile" class="card hidden">
+      <div class="grid-2">
+        <div>
+          <h3>Configuration Scope &amp; Mode</h3>
+          <label class="check-item">Scope:
+            <select data-testid="profile.scope_select" id="scopeSelect">
+              <option value="workspace">Workspace (Recommended)</option>
+              <option value="global">Global User Directory</option>
+            </select>
+          </label>
+          <label class="check-item">Write Mode:
+            <select data-testid="profile.write_mode_select" id="writeModeSelect">
+              <option value="append">Append (Safe Managed Block)</option>
+              <option value="overwrite">Overwrite (With .bak Backup)</option>
+              <option value="skip">Skip Existing Files</option>
+            </select>
+          </label>
+        </div>
+        <div>
+          <h3>Strictness Profile</h3>
+          <label class="check-item">Profile Level:
+            <select data-testid="profile.level_select" id="profileSelect">
+              <option value="strict">Strict (All 112 Rules)</option>
+              <option value="standard">Standard (Core AST &amp; Hygiene)</option>
+              <option value="safe">Safe (Safety &amp; Secrets Only)</option>
+              <option value="minimal">Minimal</option>
+            </select>
+          </label>
+          <label class="check-item">Skip Rule Codes:
+            <input data-testid="profile.skip_input" id="skipRulesInput" type="text" placeholder="e.g. 10, 38" />
+          </label>
+        </div>
+      </div>
+    </section>
+
+    <section id="panel-features" class="card hidden">
+      <div class="grid-2">
+        <div>
+          <h3>Model Context Protocol (MCP)</h3>
+          <label class="check-item">
+            <input data-testid="features.mcp_toggle" id="mcpEnabled" type="checkbox" />
+            Enable Local MCP Server
+          </label>
+          <label class="check-item">Server Name:
+            <input data-testid="features.mcp_name" id="mcpNameInput" type="text" />
+          </label>
+        </div>
+        <div>
+          <h3>Agent Skills</h3>
+          <label class="check-item">
+            <input data-testid="features.skills_toggle" id="skillsEnabled" type="checkbox" />
+            Install Autonomous Agent Skills
+          </label>
+          <label class="check-item">Bundle:
+            <select data-testid="features.bundle_select" id="bundleSelect">
+              <option value="all">All Skills</option>
+              <option value="core">Core</option>
+              <option value="architecture">Architecture</option>
+              <option value="context">Context</option>
+              <option value="workflow">Workflow</option>
+              <option value="none">None</option>
+            </select>
+          </label>
+        </div>
+      </div>
+    </section>
+
+    <section id="panel-hooks" class="card hidden">
+      <h3>Git Hooks &amp; Verification Guarantees</h3>
+      <label class="check-item">
+        <input data-testid="hooks.pre_commit_toggle" id="preCommitToggle" type="checkbox" />
+        Install Git pre-commit hook (`claudemd_linter.py --staged`)
+      </label>
+      <label class="check-item">
+        <input data-testid="hooks.pre_push_toggle" id="prePushToggle" type="checkbox" />
+        Install Git pre-push hook (`claudemd_linter.py --diff --level strict` + `link_checker.py`)
+      </label>
+      <label class="check-item">Hook Command:
+        <input data-testid="hooks.cmd_input" id="hookCmdInput" class="grow" type="text" />
+      </label>
+    </section>
+
+    <section class="card">
+      <div class="footer-actions">
+        <div class="row-flex">
+          <button type="button" data-testid="main.preview_btn" onclick="previewPlan()">Preview Changes</button>
+          <button type="button" class="danger" data-testid="main.uninstall_btn" onclick="uninstallConfig()">Clean Uninstall</button>
+        </div>
+        <div class="row-flex">
+          <span id="statusBanner" class="status-banner">Ready</span>
+          <button type="button" class="primary" data-testid="main.apply_btn" onclick="applyPlan()">Apply Changes</button>
+        </div>
+      </div>
+      <div id="previewPanel" class="preview-box hidden" style="margin-top: 12px;"></div>
+    </section>
+  </main>
+
+  <script>
+    const TOOL_LABELS = {
+      claude: "Claude Code (CLAUDE.md)",
+      cursor: "Cursor IDE (.cursorrules)",
+      antigravity: "Google Antigravity (AGENTS.md)",
+      cline: "Cline & Roo Code (.clinerules)",
+      windsurf: "Windsurf IDE (.windsurfrules)",
+      copilot: "GitHub Copilot (.github/copilot-instructions.md)",
+      aider: "Aider (.aider.conventions.md)",
+      codex: "OpenAI Codex (.codex/instructions.md)"
+    };
+    const TARGET_LABELS = {
+      claude_md: "CLAUDE.md",
+      agents_md: "AGENTS.md",
+      cursorrules: ".cursorrules",
+      clinerules: ".clinerules",
+      windsurfrules: ".windsurfrules",
+      aider_conventions: ".aider.conventions.md",
+      copilot_instructions: ".github/copilot-instructions.md"
+    };
+    let appState = null;
+
+    function toggleTheme() {
+      const htmlEl = document.documentElement;
+      const current = htmlEl.getAttribute("data-theme") || "dark";
+      htmlEl.setAttribute("data-theme", current === "dark" ? "light" : "dark");
+    }
+
+    function selectTab(tabName, buttonEl) {
+      ["tools", "profile", "features", "hooks"].forEach((name) => {
+        document.getElementById("panel-" + name).classList.toggle("hidden", name !== tabName);
+      });
+      document.querySelectorAll(".tab-btn").forEach((btn) => btn.classList.remove("active"));
+      if (buttonEl) buttonEl.classList.add("active");
+    }
+
+    function buildCheckList(containerId, itemsObj, labelsMap, datasetKey, prefix) {
+      const container = document.getElementById(containerId);
+      container.replaceChildren();
+      Object.keys(itemsObj || {}).forEach((key) => {
+        const label = document.createElement("label");
+        label.className = "check-item";
+        const box = document.createElement("input");
+        box.type = "checkbox";
+        box.checked = Boolean(itemsObj[key]);
+        box.dataset[datasetKey] = key;
+        box.setAttribute("data-testid", prefix + "." + key);
+        label.appendChild(box);
+        label.appendChild(document.createTextNode(" " + (labelsMap[key] || key)));
+        container.appendChild(label);
+      });
+    }
+
+    function renderState(state) {
+      appState = state;
+      document.getElementById("workspaceInput").value = state.workspace || "";
+      document.getElementById("scopeSelect").value = state.scope || "workspace";
+      document.getElementById("writeModeSelect").value = state.write_mode || "append";
+      document.getElementById("profileSelect").value = state.profile_level || "strict";
+      document.getElementById("skipRulesInput").value = state.skip_rules || "";
+      document.getElementById("mcpEnabled").checked = Boolean(state.mcp_enabled);
+      document.getElementById("mcpNameInput").value = state.mcp_server_name || "ai-dev-tools";
+      document.getElementById("skillsEnabled").checked = Boolean(state.skills_enabled);
+      document.getElementById("bundleSelect").value = state.skill_bundle || "all";
+      document.getElementById("preCommitToggle").checked = Boolean(state.git_hook_enabled);
+      document.getElementById("prePushToggle").checked = Boolean(state.git_pre_push_enabled);
+      document.getElementById("hookCmdInput").value = state.git_hook_command || "";
+      buildCheckList("toolsList", state.tools, TOOL_LABELS, "tool", "tools");
+      buildCheckList("targetsList", state.targets, TARGET_LABELS, "target", "targets");
+    }
+
+    function collectState() {
+      const next = Object.assign({}, appState || {});
+      next.workspace = document.getElementById("workspaceInput").value.trim();
+      next.scope = document.getElementById("scopeSelect").value;
+      next.write_mode = document.getElementById("writeModeSelect").value;
+      next.profile_level = document.getElementById("profileSelect").value;
+      next.skip_rules = document.getElementById("skipRulesInput").value.trim();
+      next.mcp_enabled = document.getElementById("mcpEnabled").checked;
+      next.mcp_server_name = document.getElementById("mcpNameInput").value.trim();
+      next.skills_enabled = document.getElementById("skillsEnabled").checked;
+      next.skill_bundle = document.getElementById("bundleSelect").value;
+      next.git_hook_enabled = document.getElementById("preCommitToggle").checked;
+      next.git_pre_push_enabled = document.getElementById("prePushToggle").checked;
+      next.git_hook_command = document.getElementById("hookCmdInput").value.trim();
+      next.tools = {};
+      document.querySelectorAll("[data-tool]").forEach((el) => { next.tools[el.dataset.tool] = el.checked; });
+      next.targets = {};
+      document.querySelectorAll("[data-target]").forEach((el) => { next.targets[el.dataset.target] = el.checked; });
+      return next;
+    }
+
+    async function apiCall(path, payload) {
+      const res = await fetch(path, {
+        method: payload ? "POST" : "GET",
+        headers: { "Content-Type": "application/json" },
+        body: payload ? JSON.stringify(payload) : undefined
+      });
+      return res.json();
+    }
+
+    async function autoDetectTools() {
+      const res = await apiCall("/api/detect", collectState());
+      renderState(res.state);
+      document.getElementById("statusBanner").textContent = res.summary || "Detection complete";
+    }
+
+    async function applyPreset(name) {
+      const res = await apiCall("/api/preset", { name: name, state: collectState() });
+      renderState(res.state);
+      document.getElementById("statusBanner").textContent = "Loaded preset: " + name;
+    }
+
+    async function previewPlan() {
+      const res = await apiCall("/api/preview", collectState());
+      const box = document.getElementById("previewPanel");
+      box.textContent = res.preview || "";
+      box.classList.remove("hidden");
+      document.getElementById("statusBanner").textContent = "Preview updated";
+    }
+
+    async function applyPlan() {
+      const res = await apiCall("/api/apply", collectState());
+      document.getElementById("statusBanner").textContent = res.message || "Configuration applied";
+    }
+
+    async function uninstallConfig() {
+      if (!window.confirm("Remove AI-Dev-Tools rules and hooks and restore backups in this workspace?")) return;
+      const res = await apiCall("/api/uninstall", collectState());
+      document.getElementById("statusBanner").textContent = res.message || "Clean uninstall finished";
+    }
+
+    async function shutdownApp() {
+      try { await fetch("/api/shutdown", { method: "POST" }); } catch (err) {}
+      window.close();
+    }
+
+    setInterval(() => { fetch("/api/heartbeat", { method: "POST" }).catch(() => {}); }, 3000);
+    window.addEventListener("beforeunload", () => {
+      if (navigator.sendBeacon) navigator.sendBeacon("/api/shutdown", "");
+    });
+
+    apiCall("/api/state").then((res) => renderState(res.state));
+  </script>
+</body>
+</html>

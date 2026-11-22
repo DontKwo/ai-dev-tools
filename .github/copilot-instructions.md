@@ -1,4 +1,3 @@
-<!-- BEGIN AI-DEV-TOOLS -->
 # Style & Tone
 - Be terse. No preamble, conversational filler ("certainly!", "here is the code", "hope this helps"), or apologies.
 - Avoid AI writing patterns: no em dashes (rewrite sentences cleanly), no negative parallelisms (`"not just X, but Y"`), no copulative avoidance (`"serves as"`, `"stands as"`), no hype/fluff vocabulary (`"pivotal"`, `"delve"`, `"testament"`, `"tapestry"`, `"robust"`, `"boasts"`, `"seamlessly"`), and no internal citation metadata (`oaicite`, `[cite: ...]`, `【...】`).
@@ -35,7 +34,7 @@
   - Inline expressions: `uv run --no-project --python "<venv_python>" python -c "<code>"`
 - Never install packages into the environment without explicit user approval.
 - Repository tools from `ai-dev-tools` may execute with the host runner (`uv run --no-project python <script>`) when the target project virtual environment lacks tool dependencies.
-- See templates/PYTHON_RULES.md for additional environment context.
+- See %USERPROFILE%\projects\ai-dev-tools\templates\PYTHON_RULES.md for additional environment context.
 
 # Proactive Quality
 - Treat short prompts as full tasks held to full engineering standards.
@@ -94,11 +93,11 @@
 - Check project documentation (e.g. docs/) for tool manuals, CLI flags, and APIs when available.
 
 # Domain Rules
-- For engineering, numerical, or thermodynamic tasks, follow templates/ENGINEERING_RULES.md if present. Domain equations adhering to these rules are exempt from single-letter variable checks (Rule 38).
+- For engineering, numerical, or thermodynamic tasks, follow %USERPROFILE%\projects\ai-dev-tools\templates\ENGINEERING_RULES.md if present. Domain equations adhering to these rules are exempt from single-letter variable checks (Rule 38).
 
 # Linter (Mandatory)
 - After every code change, run the linter:
-  uv run --no-project python scripts/claudemd_linter.py . --level strict
+  uv run --no-project python %USERPROFILE%\projects\ai-dev-tools\scripts\claudemd_linter.py . --level strict
 - In git repositories with existing history, the linter runs with `--diff` by default so only changed files get linted. Run with `--full` only when the user explicitly requests a full repository audit.
 - Verification levels (distinct from the `--full` scan scope):
   - `--level standard`: Anti-AI writing guards, core AST safety, equation formatting.
@@ -112,4 +111,7 @@
 - AI agents are strictly forbidden from reading, inspecting, or editing `scripts/claudemd_linter.py`, `scripts/custom_linter.py`, or tampering with lint reports and cache files.
 - The only exception is if the user explicitly instructs the AI to view or modify the linter script.
 - Treat the linter as an external black-box verifier: run the command, read the output codes and line numbers, consult `docs/LINTER_RULES.md` for rule descriptions if needed, and fix the underlying code to satisfy the linter without attempting to weaken, circumvent, or suppress checks.
-<!-- END AI-DEV-TOOLS -->
+
+# Repository Structure & Release Standard (Rules 101-112)
+- Keep `README.md` user-focused (`<= 120` lines): `assets/logo.png`, `## Download` table (one asset per OS), `## Screenshots` (real images), `## How to Use`, `## Safety & Disclaimers` (`main`-only fork warning, bypass discretion, AS-IS), and bottom `## Documentation` (User -> Developer -> AI/Technical -> Legal). Never put checksums, CI/CD details, `git clone`, or test/build commands in `README.md`.
+- Keep all repos on `MIT License` (`Copyright (c) 2026 DontKwo`), canonical `SECURITY.md`, `THIRD_PARTY_NOTICES.md`, clickable links everywhere, circular `## Related Documentation` footers linking to `../README.md`, per-platform `### Windows` / `### macOS` / `### Linux` headings, dual branding (`logo.png` vs cropped `icon.png`/`.ico`), single `.github/workflows/ci.yml`, and WebView GUIs with `--self-test`.

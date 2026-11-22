@@ -73,3 +73,14 @@ uv run --no-project python -m unittest tests/test_behavior_layer.py
 ```
 
 The test suite verifies that every skill has valid YAML frontmatter and that its declared name matches its directory.
+
+
+---
+
+## Related Documentation
+
+- [Project Overview](../README.md)
+- [Rule Files Reference](RULE_FILES.md)
+- [Developer Guide](DEVELOPMENT.md)
+- [112 Linter Rules Reference](LINTER_RULES.md)
+- [Security Policy](../SECURITY.md)

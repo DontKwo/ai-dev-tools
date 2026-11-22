@@ -480,6 +480,70 @@ class TestRollback(unittest.TestCase):
             self.assertEqual(f.read_text(encoding="utf-8"), "version 1")
 
 
+class TestRepoStandardsRules(unittest.TestCase):
+    """Validates Rules 101-112 for unified repository structure, docs, icons, and CI."""
+
+    def test_rules_101_to_112_detection_and_clean_repo(self) -> None:
+        from scripts.repo_standards_rules import detect_repo_standard_issues
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            (root / ".git").mkdir()
+            (root / "PLAN.md").write_text("# scratch\n", encoding="utf-8")
+            (root / "README.md").write_text(
+                "# Demo\n\nCheck SHA256SUMS.txt and see `docs/USER_GUIDE.md`.\n",
+                encoding="utf-8",
+            )
+            violations: list[tuple[Path, int, int]] = []
+            all_codes = set(range(101, 113))
+            detect_repo_standard_issues(root, [], all_codes, lambda _p, _ln, _c: False, violations)
+            found = {code for _, _, code in violations}
+            self.assertTrue({101, 102, 103, 104, 107}.issubset(found))
+
+            # Build compliant repo and verify 0 violations
+            (root / "PLAN.md").unlink()
+            (root / "docs").mkdir(exist_ok=True)
+            (root / "assets" / "screenshots").mkdir(parents=True, exist_ok=True)
+            (root / ".github" / "workflows").mkdir(parents=True, exist_ok=True)
+            (root / "assets" / "logo.png").write_bytes(b"LOGO_BYTES")
+            (root / "assets" / "icon.png").write_bytes(b"ICON_BYTES")
+            (root / "assets" / "icon.ico").write_bytes(b"ICO_BYTES")
+            (root / "assets" / "screenshots" / "01_main.png").write_bytes(b"SHOT")
+            (root / "LICENSE").write_text("MIT License\n\nCopyright (c) 2026 DontKwo\n", encoding="utf-8")
+            (root / "SECURITY.md").write_text("# Security\n\nOnly `main` releases; do not download forked builds.\n", encoding="utf-8")
+            (root / "THIRD_PARTY_NOTICES.md").write_text("# Notices\n", encoding="utf-8")
+            (root / "AGENTS.md").write_text("# Agents\n", encoding="utf-8")
+            for doc_name in ("USER_GUIDE.md", "DEVELOPMENT.md", "INSTALLATION.md"):
+                (root / "docs" / doc_name).write_text(
+                    f"# {doc_name}\n\n## Windows\nwin\n\n## macOS\nmac\n\n## Linux\nlin\n\n"
+                    "## Related Documentation\n- [Overview](../README.md)\n",
+                    encoding="utf-8",
+                )
+            (root / ".github" / "workflows" / "ci.yml").write_text(
+                "on:\n  push:\n    branches: [main]\n  pull_request:\n    branches: [main]\n"
+                "steps:\n  - run: python claudemd_linter.py . && python link_checker.py . && ./app --self-test\n"
+                "uses: softprops/action-gh-release@v2\nwith:\n  tag_name: ${{ steps.version.outputs.tag }}\n"
+                "  prerelease: false\n  make_latest: true\n",
+                encoding="utf-8",
+            )
+            (root / "README.md").write_text(
+                '<p align="center"><img src="assets/logo.png" width="240" /></p>\n\n# Demo\n\n'
+                "## Download\n\n"
+                "| Platform | Download |\n| :--- | :--- |\n"
+                "| Windows | [Demo-Windows.exe](https://github.com/DontKwo/demo/releases/latest/download/Demo-Windows.exe) |\n\n"
+                "## Screenshots\n\n<img src=\"assets/screenshots/01_main.png\" />\n\n"
+                "## Safety & Disclaimers\n\nOfficial `main` only.\n\n"
+                "## Documentation\n\n"
+                "### User Documentation\n- [User Guide](docs/USER_GUIDE.md)\n\n"
+                "### Developer Documentation\n- [Developer Guide](docs/DEVELOPMENT.md)\n\n"
+                "### Legal & Security Policies\n- [Security Policy](SECURITY.md)\n",
+                encoding="utf-8",
+            )
+            clean_violations: list[tuple[Path, int, int]] = []
+            detect_repo_standard_issues(root, [], all_codes, lambda _p, _ln, _c: False, clean_violations)
+            self.assertEqual(clean_violations, [])
+
+
 if __name__ == "__main__":
     unittest.main()
 

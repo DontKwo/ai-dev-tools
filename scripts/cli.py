@@ -21,6 +21,8 @@ COMMAND_MAP: dict[str, str] = {
     "skills": "skills_manager.py",
     "config": "configure.py",
     "apply": "apply_config.py",
+    "detect": "apply_config.py",
+    "uninstall": "apply_config.py",
     "gui": "setup_gui.py",
     "checkpoint": "rollback.py",
     "secrets": "secret_sanitizer.py",
@@ -60,6 +62,10 @@ COMMAND_MAP: dict[str, str] = {
     "tables": "format_tables.py",
     "minify": "minify_instructions.py",
     "benchmark": "benchmark_runner.py",
+    "standardize": "repo_standardizer.py",
+    "status-all": "repo_standardizer.py",
+    "screenshots": "capture_screenshots.py",
+    "crop-icons": "crop_icons.py",
 }
 
 COMMAND_ALIASES: dict[str, str] = {
@@ -103,7 +109,15 @@ def print_usage() -> None:
     print("  search        Fast regex search with context lines and file filters")
     print("  links         Audit markdown links, anchors, and release download targets")
     print("  md            Convert documents (PDF, DOCX, XLSX, HTML) to Markdown\n")
-    print("Configuration & Skills:")
+    print("Configuration & Setup:")
+    print("  apply         Apply declarative YAML configuration to workspace")
+    print("  detect        Detect existing AI tools and recommended settings in workspace")
+    print("  uninstall     Cleanly remove AI-dev-tools rules and restore backups")
+    print("  gui           Launch standalone configuration wizard GUI")
+    print("  standardize   Scaffold unified README, license, security, and install docs")
+    print("  status-all    Audit all owned repositories against unification standards")
+    print("  screenshots   Capture headless desktop/web screenshots into PNG")
+    print("  crop-icons    Crop dual-brand banners and square icons from logo sources")
     print("  init          Run interactive setup wizard with profile selection")
     print("  init-config   Generate default .aitools.toml declarative configuration file")
     print("  skills        Inspect, toggle, and sync agent skills across editors")
@@ -224,6 +238,14 @@ def main() -> None:
 
     if subcmd == "lint":
         rest = handle_lint_args(rest)
+    elif subcmd == "uninstall":
+        rest = ["--uninstall"] + rest
+    elif subcmd == "detect":
+        rest = ["--detect", "--dry-run"] + rest
+    elif subcmd == "standardize":
+        rest = ["standardize"] + rest
+    elif subcmd == "status-all":
+        rest = ["status-all"] + rest
 
     code = run_target_script(COMMAND_MAP[subcmd], rest)
     sys.exit(code)

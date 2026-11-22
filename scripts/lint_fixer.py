@@ -10,7 +10,9 @@ Em dashes (Code 1) are NEVER automatically replaced.
 Rule 1 mandates completely rewriting the sentence, which cannot be automated safely.
 """
 import argparse
+import difflib
 import re
+import shutil
 import sys
 from pathlib import Path
 
@@ -161,12 +163,27 @@ def condense_docstrings(content: str) -> tuple[str, int]:
     return new_content, count
 
 
+def rollback_backups(target: Path) -> int:
+    restored_count = 0
+    candidate_backups = [target] if (target.is_file() and target.name.endswith(".bak")) else list(target.rglob("*.bak"))
+    for backup_file in candidate_backups:
+        original_name = backup_file.name[:-4]
+        original_file = backup_file.with_name(original_name)
+        shutil.copy2(backup_file, original_file)
+        backup_file.unlink()
+        print(f"[RESTORED] Restored {original_name} from {backup_file.name}")  # noqa: 25
+        restored_count += 1
+    return restored_count
+
+
 def fix_file(
     path: Path,
     dry_run: bool,
     fix_emojis: bool,
     fix_banners: bool = True,
     fix_docstrings: bool = False,
+    show_diff: bool = False,
+    create_backup: bool = False,
     custom_config: CustomLinterConfig | None = None,
 ) -> int:
     if path.name in (CUSTOM_CONFIG_FILENAME, CUSTOM_EXAMPLE_FILENAME):
@@ -182,10 +199,10 @@ def fix_file(
     modified_lines = []
     total_fixes = 0
 
-    for i, line in enumerate(lines, 1):
+    for line_index, line in enumerate(lines, 1):
         fixed, changes = fix_line(
             line,
-            i,
+            line_index,
             path,
             fix_emojis,
             fix_banners,
@@ -193,7 +210,7 @@ def fix_file(
         )
         if changes:
             total_fixes += len(changes)
-            print(f"  {path.name}:{i} -> {', '.join(changes)}")  # noqa: 25
+            print(f"  {path.name}:{line_index} -> {', '.join(changes)}")  # noqa: 25
         modified_lines.append(fixed)
 
     updated_text = "".join(modified_lines)
@@ -204,7 +221,22 @@ def fix_file(
             total_fixes += doc_fixes
             print(f"  {path.name} -> Condensed {doc_fixes} bloated docstring(s) (Rule 40)")  # noqa: 25
 
+    if total_fixes > 0 and show_diff:
+        diff_lines = list(
+            difflib.unified_diff(
+                content.splitlines(keepends=True),
+                updated_text.splitlines(keepends=True),
+                fromfile=f"a/{path.name}",
+                tofile=f"b/{path.name}",
+            )
+        )
+        print("".join(diff_lines))
+
     if total_fixes > 0 and not dry_run:
+        if create_backup:
+            backup_path = path.with_suffix(path.suffix + ".bak")
+            shutil.copy2(path, backup_path)
+            print(f"  [BACKUP] Saved backup to {backup_path.name}")  # noqa: 25
         path.write_text(updated_text, encoding="utf-8")
         print(f"[OK] Applied {total_fixes} safe fixes to {path}")  # noqa: 25
     elif total_fixes > 0 and dry_run:
@@ -220,6 +252,9 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Apply guaranteed safe fixes for claudemd_linter.")
     parser.add_argument("target", help="File or directory to fix")
     parser.add_argument("--dry-run", action="store_true", help="Preview fixes without modifying files")
+    parser.add_argument("--diff", action="store_true", help="Display unified diff of proposed changes")
+    parser.add_argument("--backup", action="store_true", help="Create .bak backup before modifying any file")
+    parser.add_argument("--rollback", action="store_true", help="Restore all .bak backup files in target")
     parser.add_argument("--fix-emojis", action="store_true", help="Also safely strip unicode emojis (Rule 3)")
     parser.add_argument("--no-banners", action="store_true", help="Disable heavy banner condensing (Rule 41)")
     parser.add_argument("--fix-docstrings", action="store_true", help="Condense bloated docstrings on simple helpers (Rule 40)")
@@ -229,6 +264,11 @@ def main() -> None:
     if not target.exists():
         print(f"Error: Target path not found: {target}")  # noqa: 25
         sys.exit(1)
+
+    if args.rollback:
+        restored = rollback_backups(target)
+        print(f"Rollback complete: {restored} backup file(s) restored.")  # noqa: 25
+        return
 
     scan_suffixes = {".py", ".md", ".txt", ".js", ".ts", ".jsx", ".tsx", ".html", ".vue", ".svelte"}
     files = [target] if target.is_file() else [
@@ -244,15 +284,17 @@ def main() -> None:
     total_changes = 0
     target_root = target if target.is_dir() else target.parent
     custom_cfg = load_custom_linter_config(target_root=target_root)
-    for f in files:
-        if any(skip in f.parts for skip in {".git", ".venv", "node_modules", "__pycache__"}):
+    for file_target in files:
+        if any(skip in file_target.parts for skip in {".git", ".venv", "node_modules", "__pycache__"}):
             continue
         total_changes += fix_file(
-            f,
+            file_target,
             args.dry_run,
             args.fix_emojis,
             fix_banners=not args.no_banners,
             fix_docstrings=args.fix_docstrings,
+            show_diff=args.diff,
+            create_backup=args.backup,
             custom_config=custom_cfg,
         )
 

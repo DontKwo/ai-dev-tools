@@ -147,5 +147,16 @@ class TestInstallAntigravityHooks(unittest.TestCase):
             install_antigravity_hooks.main()
         self.assertFalse((self.temp_path / ".git" / "hooks" / "pre-commit").exists())
 
+    def test_pre_push_hook_install_and_uninstall(self) -> None:
+        (self.temp_path / ".git").mkdir()
+        install_hooks.install_hook(self.temp_path, action="overwrite", hook_type="pre-push")
+        pre_push = self.temp_path / ".git" / "hooks" / "pre-push"
+        self.assertTrue(pre_push.is_file())
+        text = pre_push.read_text(encoding="utf-8")
+        self.assertIn("claudemd_linter.py", text)
+        self.assertIn("link_checker.py", text)
+        install_hooks.uninstall_hook(self.temp_path, hook_type="pre-push")
+        self.assertFalse(pre_push.exists())
+
 if __name__ == "__main__":
     unittest.main()

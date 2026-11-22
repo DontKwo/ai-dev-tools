@@ -22,3 +22,14 @@ To suppress checks:
 - **Multi-line comments exemption**: Place `# long-comment-ok` on or directly above a multi-line comment block to exempt it from the 2-line comment limit (Rule 17).
 
 You can audit all suppressions in your codebase by running the linter with the `--noqa` flag.
+
+
+---
+
+## Related Documentation
+
+- [Project Overview](../README.md)
+- [User Guide](USER_GUIDE.md)
+- [Desktop Installation Guide](INSTALLATION.md)
+- [112 Linter Rules Reference](LINTER_RULES.md)
+- [Security Policy](../SECURITY.md)

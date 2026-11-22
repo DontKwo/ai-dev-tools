@@ -217,6 +217,18 @@ only = []
 | **98** | Web / A11y | Accessibility or UI structure hazard (`<img>` missing `alt`, `<button>` missing `type`, `.map()` missing `key`) | Provide accessible labels, explicit button types (`type="button"`), and unique key props. |
 | **99** | AI Shortcuts | AI deferred stub in production code (`# deferred: implement`, `# AI generated stub`, `# Implement later`) | Complete the production implementation. Avoid placeholder comments. <!-- noqa: 24 --> |
 | **100** | Code Quality | Hallucinated or invalid standard library import (non-existent module or incorrect type import) | Use canonical Python standard library modules and correct typing primitives (`str` instead of `String`). |
+| **101** | Repo Hygiene | Missing required root/doc/CI files or root scratch/design/binary artifacts (`PLAN.md`, `DESIGN.md`, root `.exe`/`.apk`) | Move technical facts to `docs/ARCHITECTURE.md` / `docs/VALIDATION.md`, remove root artifacts, add required files. |
+| **102** | README Layout | `README.md` violates user-first structure (`<= 120` lines, logo, `## Download`, `## Screenshots`, `## Safety & Disclaimers`, bottom `## Documentation`) | Format `README.md` from `templates/repo_blueprint/README_TEMPLATE.md` with local screenshots. |
+| **103** | README Purity | `README.md` contains checksums (`SHA256SUMS`), CI/CD explanations, `git clone`, or test/build commands | Move technical and build instructions into `docs/DEVELOPMENT.md` and remove checksum text. |
+| **104** | Circular Docs | Prose references backticked doc files instead of linking, or `docs/*.md` lacks `## Related Documentation` footer | Use direct clickable Markdown links everywhere and add `## Related Documentation` linking to `../README.md`. |
+| **105** | Minimal Downloads | `## Download` table repeats an OS platform or offers multiple archives per platform without justification | Keep one primary downloadable artifact per supported platform. |
+| **106** | Companion Guides | Missing `docs/APK_INSTALLATION.md`, `docs/INSTALLATION.md`, `docs/UV_INSTALLATION.md`, or `docs/OPENFOAM_INSTALLATION.md` | Copy and tailor matching guides from `templates/repo_blueprint/`. |
+| **107** | Dual Branding | Missing `assets/logo.png` or distinct text-free cropped `assets/icon.png` (and `assets/icon.ico` for Windows) | Run `scripts/crop_icons.py` to generate separate full wordmark and square icon assets. |
+| **108** | CI/CD Parity | Competing workflow files or `ci.yml` missing push/PR triggers, strict linter, link checker, or semantic `vX.Y.Z` release config | Consolidate into single `.github/workflows/ci.yml` matching `templates/repo_blueprint/ci-template.yml`. |
+| **109** | Legal & Security | `LICENSE` not MIT (`Copyright (c) 2026 DontKwo`) or `SECURITY.md` missing `main`-only and fork safety policy | Sync `LICENSE` and `SECURITY.md` from `templates/repo_blueprint/`. |
+| **110** | Platform Sections | Installation or runtime guide missing explicit `### Windows`, `### macOS`, and `### Linux` sections | Add explicit per-platform subsections (or set `[project] single_os` in `.aitools.toml` for single-OS apps). |
+| **111** | Unified GUI Stack | Application imports disallowed legacy toolkits (`tkinter`, `PyQt5/6`, `PySide2/6`, `wx`) <!-- noqa: 8 --> | Migrate UI to the unified HTML/React WebView desktop architecture or native Jetpack Compose. |
+| **112** | Binary Self-Test | Desktop binary build missing `--self-test` startup and health check verification | Implement `--self-test` flag in desktop entrypoint and execute it in `.github/workflows/ci.yml`. |
 
 ---
 
@@ -267,3 +279,13 @@ Smart directory-aware regex search ignoring cache and build folders:
 ```bash
 uv run --no-project python scripts/grep_keywords.py "noqa" . --ext py
 ```
+
+---
+
+## Related Documentation
+
+- [Project Overview](../README.md)
+- [User Guide](USER_GUIDE.md)
+- [Developer Guide](DEVELOPMENT.md)
+- [Developer Manual](DEV_MANUAL.md)
+- [Security Policy](../SECURITY.md)

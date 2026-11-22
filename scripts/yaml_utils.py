@@ -176,3 +176,41 @@ def load_yaml_file(path: Path) -> dict[str, Any]:
 def dump_yaml_file(data: dict[str, Any], path: Path) -> None:
     text = dump_yaml(data) + "\n"
     path.write_text(text, encoding="utf-8")
+
+
+def validate_config_schema(config_dict: dict[str, Any]) -> list[str]:
+    valid_root_keys = {
+        "version",
+        "schema_version",
+        "scope",
+        "write_mode",
+        "profile",
+        "targets",
+        "tools",
+        "mcp",
+        "skills",
+        "hooks",
+    }
+    warnings: list[str] = []
+
+    for key_name in config_dict:
+        if key_name not in valid_root_keys:
+            warnings.append(f"Unknown root key '{key_name}' in configuration.")
+
+    scope_val = config_dict.get("scope")
+    if scope_val is not None and str(scope_val).lower() not in ("workspace", "global"):
+        warnings.append(f"Invalid scope '{scope_val}'. Must be 'workspace' or 'global'.")
+
+    mode_val = config_dict.get("write_mode")
+    if mode_val is not None and str(mode_val).lower() not in ("append", "overwrite", "skip"):
+        warnings.append(f"Invalid write_mode '{mode_val}'. Must be 'append', 'overwrite', or 'skip'.")
+
+    tools_val = config_dict.get("tools")
+    if tools_val is not None and not isinstance(tools_val, (dict, list)):
+        warnings.append("Section 'tools' must be a dictionary or list.")
+
+    targets_val = config_dict.get("targets")
+    if targets_val is not None and not isinstance(targets_val, dict):
+        warnings.append("Section 'targets' must be a dictionary.")
+
+    return warnings

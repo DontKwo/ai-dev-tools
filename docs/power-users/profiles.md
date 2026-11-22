@@ -48,3 +48,14 @@ AI-Dev-Tools provides preconfigured rule profiles to balance linter strictness a
 - **Intent**: Lightweight configuration for a single assistant with core AST safeguards.
 - **Skills**: Disabled by default.
 - **Git Hook**: Disabled by default.
+
+
+---
+
+## Related Documentation
+
+- [Project Overview](../../README.md)
+- [CLI Reference](cli-reference.md)
+- [YAML Configuration Guide](yaml-guide.md)
+- [112 Linter Rules Reference](../LINTER_RULES.md)
+- [Security Policy](../../SECURITY.md)

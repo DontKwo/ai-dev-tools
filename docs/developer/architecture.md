@@ -49,7 +49,7 @@ AI-Dev-Tools consists of three primary execution layers:
 The CLI runner script that loads YAML configuration, translates it into concrete file generation targets, runs data-loss risk analysis, prints dry-run reports, and executes filesystem updates.
 
 ### `scripts/setup_gui.py`
-The desktop GUI application built with Tkinter. Decouples state logic (`SetupGuiModel`) from widget rendering (`SetupApp`), allowing full headless unit testing.
+The desktop GUI application powered by a local loopback HTTP server and dark/light theme-token WebView frontend (`scripts/setup_gui_ui.html`), separating configuration state (`SetupGuiModel`) for full headless testing (`--self-test`).
 
 ### `scripts/yaml_utils.py`
 A pure-Python YAML parser and serializer with PyYAML fallback. Eliminates external pip dependencies so configuration parsing operates in zero-dependency environments.
@@ -79,9 +79,18 @@ Before writing any file, the execution engine evaluates the target path:
 
 ## Cross-Platform Build Pipeline
 
-GitHub Actions (`.github/workflows/build-gui.yml`) compiles `scripts/setup_gui.py` into standalone executables using PyInstaller on every push:
-- Windows: `adt-setup.exe`
-- Linux: `adt-setup-linux`
-- macOS: `adt-setup-macos`
+GitHub Actions (`.github/workflows/ci.yml`) compiles `scripts/setup_gui.py` into standalone executables using PyInstaller on every push:
+- Windows: `adt-setup-Windows.exe`
+- macOS: `adt-setup-macOS.zip`
+- Linux: `adt-setup-Linux.tar.gz`
 
-Executables bundle the pure-Python YAML engine and rule templates directly inside the binary.
+Executables bundle the pure-Python YAML engine, WebView UI assets, and rule templates directly inside the binary.
+
+---
+
+## Related Documentation
+
+- [Project Overview](../../README.md)
+- [System Architecture](../ARCHITECTURE.md)
+- [Developer Guide](../DEVELOPMENT.md)
+- [Security Policy](../../SECURITY.md)

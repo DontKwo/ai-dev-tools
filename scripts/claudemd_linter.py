@@ -27,6 +27,7 @@ from scripts.custom_linter import (  # noqa: 12
     load_custom_linter_config,
     scan_custom_rules_for_file,
 )
+from scripts.repo_standards_rules import detect_repo_standard_issues  # noqa: 12
 from scripts.tools_config import load_tools_config  # noqa: 12
 from scripts.ui_adapters import get_all_adapters  # noqa: 12
 from scripts.ui_config import load_ui_config  # noqa: 12
@@ -139,6 +140,18 @@ LEGEND = {
     98: "Accessibility or UI structure hazard in web component (img without alt, button without type, map without key).",
     99: "AI deferred stub in production code (TODO: implement, AI placeholder, or incomplete implementation).",
     100: "Hallucinated or invalid standard library import (non-existent module or incorrect type import).",
+    101: "Missing required repo standard file (README.md, LICENSE, SECURITY.md, THIRD_PARTY_NOTICES.md, AGENTS.md, docs/USER_GUIDE.md, docs/DEVELOPMENT.md, ci.yml) or banned root clutter present.",
+    102: "README.md violates canonical user-first layout (<=120 lines, assets/logo.png, ## Download, ## Screenshots with real local images, ## Safety & Disclaimers, bottom ## Documentation ordered User -> Developer -> Legal).",
+    103: "README.md leaks internal engineering details (checksums/SHA256SUMS, CI/CD workflow prose, git clone, test runners, or build commands).",
+    104: "Markdown file uses unlinked backticked doc filename or docs/*.md lacks a '## Related Documentation' footer linking back to ../README.md.",
+    105: "README.md ## Download table duplicates platforms or offers multiple assets per single platform without compatibility waiver.",
+    106: "Missing conditional companion guide (docs/APK_INSTALLATION.md, docs/INSTALLATION.md, docs/UV_INSTALLATION.md, or docs/OPENFOAM_INSTALLATION.md).",
+    107: "Dual branding missing or identical: assets/logo.png and cropped text-free assets/icon.png (plus .ico for Windows) must both exist and differ.",
+    108: "CI/CD parity violation: require single .github/workflows/ci.yml with push+PR triggers, no paths-ignore on docs, strict linter + link checker, and semantic vX.Y.Z release (prerelease: false, make_latest: true).",
+    109: "License or security policy inconsistency: LICENSE must be MIT (Copyright (c) 2026 DontKwo) and SECURITY.md must cover main-only releases and fork warnings.",
+    110: "Installation or developer guide missing explicit per-platform headings (### Windows, ### macOS, ### Linux).",
+    111: "Disallowed desktop GUI toolkit import (tkinter, PyQt5/6, PySide2/6, wx). Use the unified WebView architecture.",
+    112: "Desktop binary build missing --self-test verification flag in CI or entrypoint.",
 }
 
 TOOLTIP_TARGET_CLASSES = {
@@ -413,8 +426,9 @@ LEVEL_RULES: dict[str, set[int]] = {
         46, 47, 48, 49, 54, 80, 81, 82, 83,
         84, 85, 86, 87, 88, 89, 90, 91,
         92, 93, 94, 95, 96, 97, 98, 99, 100,
+        101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112,
     },
-    "full": set(range(1, 101)),
+    "full": set(range(1, 113)),
 }
 
 HEADING_RE = re.compile(r"^#{1,6}\s+(.+)$")
@@ -1341,7 +1355,7 @@ def get_linter_hash() -> str:
     hasher = hashlib.md5()
     linter_file = Path(__file__).resolve()
     adapter_dir = linter_file.parent / "ui_adapters"
-    source_files = [linter_file, linter_file.parent / "custom_linter.py"]
+    source_files = [linter_file, linter_file.parent / "custom_linter.py", linter_file.parent / "repo_standards_rules.py"]
     if adapter_dir.is_dir():
         source_files.extend(sorted(adapter_dir.glob("*.py")))
     source_files.extend(load_custom_linter_config().loaded_files)
@@ -1812,6 +1826,18 @@ def main() -> int:
                                 violations.append((sv.file, sv.line, sv.code))
         if 89 in active_codes:
             detect_repo_hygiene_issues(root, violations)
+        std_codes = active_codes & set(range(101, 113))
+        should_check_standards = (
+            p.is_dir()
+            and (root / ".git").exists()
+            and (
+                flags["full"]
+                or any(f.name in {"README.md", "LICENSE", "SECURITY.md", "ci.yml"} for f in files)
+                or bool(only_codes & set(range(101, 113)))
+            )
+        )
+        if std_codes and should_check_standards:
+            detect_repo_standard_issues(root, files, std_codes, _check_noqa_in_file, violations)
 
         violations = filter_overridden_violations(violations, custom_cfg, root=root)
         violations = [v for v in violations if v[2] in active_codes]

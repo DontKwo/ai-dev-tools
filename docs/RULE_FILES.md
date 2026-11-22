@@ -58,3 +58,14 @@ uv run --no-project python -m unittest tests/test_behavior_layer.py
 ```
 
 This test checks that each rule file contains required sections for quality, testing standards, UI guidelines, interaction rules, and memory management.
+
+
+---
+
+## Related Documentation
+
+- [Project Overview](../README.md)
+- [Agent Skills Guide](SKILLS_GUIDE.md)
+- [Developer Guide](DEVELOPMENT.md)
+- [112 Linter Rules Reference](LINTER_RULES.md)
+- [Security Policy](../SECURITY.md)
