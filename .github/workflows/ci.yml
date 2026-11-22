@@ -100,7 +100,7 @@ jobs:
       - name: Install PyInstaller
         run: |
           python -m pip install --upgrade pip
-          pip install pyinstaller
+          pip install pyinstaller pillow
 
       - name: Build Windows executable & run self-test
         if: runner.os == 'Windows'
@@ -124,8 +124,13 @@ jobs:
             --add-data "assets:assets" \
             --add-data "scripts:scripts" \
             scripts/setup_gui.py
-          chmod +x "dist/${{ matrix.bin_name }}"
-          "./dist/${{ matrix.bin_name }}" --self-test
+          if [ -x "dist/${{ matrix.bin_name }}" ]; then
+            chmod +x "dist/${{ matrix.bin_name }}"
+            "./dist/${{ matrix.bin_name }}" --self-test
+          else
+            chmod +x "dist/${{ matrix.bin_name }}.app/Contents/MacOS/${{ matrix.bin_name }}"
+            "./dist/${{ matrix.bin_name }}.app/Contents/MacOS/${{ matrix.bin_name }}" --self-test
+          fi
 
       - name: Package release archive
         shell: bash
