@@ -106,6 +106,12 @@ jobs:
         if: runner.os == 'Windows'
         run: |
           pyinstaller --onefile --noconsole --icon=assets/icon.ico --name adt-setup-Windows `
+            --paths scripts `
+            --hidden-import difflib `
+            --hidden-import shutil `
+            --hidden-import uuid `
+            --hidden-import http.server `
+            --hidden-import webbrowser `
             --add-data "templates;templates" `
             --add-data "configs;configs" `
             --add-data "skills;skills" `
@@ -118,6 +124,12 @@ jobs:
         if: runner.os != 'Windows'
         run: |
           pyinstaller --onefile --noconsole --icon=assets/icon.ico --name "${{ matrix.bin_name }}" \
+            --paths scripts \
+            --hidden-import difflib \
+            --hidden-import shutil \
+            --hidden-import uuid \
+            --hidden-import http.server \
+            --hidden-import webbrowser \
             --add-data "templates:templates" \
             --add-data "configs:configs" \
             --add-data "skills:skills" \
