@@ -152,9 +152,9 @@ def run_status_all(projects_dir: Path, run_linter: bool = True, as_json: bool = 
         link_status = "SKIP"
         if run_linter:
             runner = ["uv", "run", "--no-project", "python"] if shutil.which("uv") else [sys.executable]
-            lint_res = subprocess.run(runner + [str(LINTER_SCRIPT), str(repo_dir), "--level", "strict", "--full"], capture_output=True, text=True, check=False)
+            lint_res = subprocess.run(runner + [str(LINTER_SCRIPT), ".", "--level", "strict", "--full", "--no-cache"], cwd=repo_dir, capture_output=True, text=True, check=False)
             lint_status = "CLEAN" if lint_res.returncode == 0 else "FAIL"
-            link_res = subprocess.run(runner + [str(LINK_CHECKER_SCRIPT), str(repo_dir)], capture_output=True, text=True, check=False)
+            link_res = subprocess.run(runner + [str(LINK_CHECKER_SCRIPT), "."], cwd=repo_dir, capture_output=True, text=True, check=False)
             link_status = "OK" if link_res.returncode == 0 else "FAIL"
         info["lint"] = lint_status
         info["links"] = link_status
