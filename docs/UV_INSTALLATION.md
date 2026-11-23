@@ -6,7 +6,9 @@ Developers working on Python source code, running the unit test suite, or execut
 
 ---
 
-## Windows
+## Platform Instructions
+
+### Windows
 
 Choose either the official standalone installer or a Windows package manager:
 
@@ -17,9 +19,7 @@ winget install --id=astral-sh.uv -e
 scoop install main/uv
 ```
 
----
-
-## macOS
+### macOS
 
 Choose either the official standalone installer or Homebrew / MacPorts:
 
@@ -30,9 +30,7 @@ brew install uv
 sudo port install uv
 ```
 
----
-
-## Linux
+### Linux
 
 Use the official standalone installer (`curl`, `wget`, or isolated `pipx`):
 

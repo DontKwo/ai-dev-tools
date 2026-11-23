@@ -10,7 +10,9 @@ Install and launch the `AI-Dev-Tools` Setup Assistant on your computer without P
 
 ---
 
-## Windows
+## Platform Installation Instructions
+
+### Windows
 
 1. Download `adt-setup-Windows.exe` from [Latest Releases](https://github.com/DontKwo/ai-dev-tools/releases/latest).
 2. Double-click `adt-setup-Windows.exe` to open the Setup Assistant.
@@ -19,9 +21,7 @@ Install and launch the `AI-Dev-Tools` Setup Assistant on your computer without P
    - Confirm the file came from `DontKwo/ai-dev-tools`, then click **Run anyway** at your own discretion.
 4. Alternative unblock method: Right-click `adt-setup-Windows.exe` -> **Properties** -> check **Unblock** under Security -> click **Apply** and **OK** -> launch normally.
 
----
-
-## macOS
+### macOS
 
 1. Download `adt-setup-macOS.zip` from [Latest Releases](https://github.com/DontKwo/ai-dev-tools/releases/latest).
 2. Double-click the `.zip` archive to extract the executable (and move to **Applications** if desired).
@@ -31,9 +31,7 @@ Install and launch the `AI-Dev-Tools` Setup Assistant on your computer without P
    - Next to the blocked notice, click **Open Anyway** and confirm with your password or Touch ID.
 4. Developer Terminal Alternative: run `xattr -cr <path-to-app>` in Terminal, then open it normally.
 
----
-
-## Linux
+### Linux
 
 1. Download `adt-setup-Linux.tar.gz` from [Latest Releases](https://github.com/DontKwo/ai-dev-tools/releases/latest).
 2. Extract the archive in your file manager (or run `tar -xzf adt-setup-Linux.tar.gz`).

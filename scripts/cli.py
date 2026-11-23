@@ -63,6 +63,7 @@ COMMAND_MAP: dict[str, str] = {
     "minify": "minify_instructions.py",
     "benchmark": "benchmark_runner.py",
     "standardize": "repo_standardizer.py",
+    "init-repo": "repo_standardizer.py",
     "status-all": "repo_standardizer.py",
     "screenshots": "capture_screenshots.py",
     "crop-icons": "crop_icons.py",
@@ -84,7 +85,7 @@ def print_usage() -> None:
     print("Usage: adt <command> [options...]\n")
     print("Core & Verification:")
     print("  doctor        Run diagnostics on environment, tool configs, and skills")
-    print("  lint          Run 91-rule AST, UI, and writing style linter (--profile safe|standard|strict)")
+    print("  lint          Run 112-rule AST, UI, repo standards, and writing style linter (--profile safe|standard|strict)")
     print("  fix           Run deterministic mechanical auto-fixers")
     print("  ui            Multi-framework UI manifest, evidence, and audit manager")
     print("  test          Run smart AST-driven test runner")
@@ -115,6 +116,7 @@ def print_usage() -> None:
     print("  uninstall     Cleanly remove AI-dev-tools rules and restore backups")
     print("  gui           Launch standalone configuration wizard GUI")
     print("  standardize   Scaffold unified README, license, security, and install docs")
+    print("  init-repo     Initialize full compliant repository layout and CI workflow")
     print("  status-all    Audit all owned repositories against unification standards")
     print("  screenshots   Capture headless desktop/web screenshots into PNG")
     print("  crop-icons    Crop dual-brand banners and square icons from logo sources")
@@ -244,6 +246,8 @@ def main() -> None:
         rest = ["--detect", "--dry-run"] + rest
     elif subcmd == "standardize":
         rest = ["standardize"] + rest
+    elif subcmd == "init-repo":
+        rest = ["init-repo"] + rest
     elif subcmd == "status-all":
         rest = ["status-all"] + rest
 

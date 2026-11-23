@@ -130,11 +130,11 @@
       <h3>Git Hooks &amp; Verification Guarantees</h3>
       <label class="check-item">
         <input data-testid="hooks.pre_commit_toggle" id="preCommitToggle" type="checkbox" />
-        Install Git pre-commit hook (`claudemd_linter.py --staged`)
+        Install Git pre-commit hook (<code>claudemd_linter.py --staged</code>)
       </label>
       <label class="check-item">
         <input data-testid="hooks.pre_push_toggle" id="prePushToggle" type="checkbox" />
-        Install Git pre-push hook (`claudemd_linter.py --diff --level strict` + `link_checker.py`)
+        Install Git pre-push hook (<code>claudemd_linter.py --diff --level strict</code> + <code>link_checker.py</code>)
       </label>
       <label class="check-item">Hook Command:
         <input data-testid="hooks.cmd_input" id="hookCmdInput" class="grow" type="text" />

@@ -10,7 +10,9 @@ Install and launch `<AppName>` on your computer without Python, Node.js, or deve
 
 ---
 
-## Windows
+## Platform Installation Instructions
+
+### Windows
 
 1. Download `<AppName>-Windows.exe` from [Latest Releases](https://github.com/DontKwo/<Repo>/releases/latest).
 2. Double-click the downloaded `.exe` file to open `<AppName>`.
@@ -19,9 +21,7 @@ Install and launch `<AppName>` on your computer without Python, Node.js, or deve
    - Confirm the file came from `DontKwo/<Repo>`, then click **Run anyway** at your own discretion.
 4. Alternative unblock method: Right-click `<AppName>-Windows.exe` -> **Properties** -> check **Unblock** near the bottom under Security -> click **Apply** and **OK** -> open the file normally.
 
----
-
-## macOS
+### macOS
 
 1. Download `<AppName>-macOS.zip` (or `.dmg`) from [Latest Releases](https://github.com/DontKwo/<Repo>/releases/latest).
 2. Double-click the archive to unpack it (or open the `.dmg`) and drag **`<AppName>.app`** into your **Applications** folder.
@@ -31,9 +31,7 @@ Install and launch `<AppName>` on your computer without Python, Node.js, or deve
    - Next to `"<AppName>.app was blocked"`, click **Open Anyway** and confirm with your password or Touch ID.
 4. Developer Terminal Alternative (when working locally): run `xattr -cr /Applications/<AppName>.app` in Terminal, then open `<AppName>.app` normally.
 
----
-
-## Linux
+### Linux
 
 1. Download `<AppName>-Linux.tar.gz` from [Latest Releases](https://github.com/DontKwo/<Repo>/releases/latest).
 2. Extract the archive in your file manager (or run `tar -xzf <AppName>-Linux.tar.gz`).

@@ -142,7 +142,94 @@ def standardize_repo(repo_dir: Path, app_name: str, dry_run: bool = False) -> li
     return actions
 
 
-def run_status_all(projects_dir: Path, run_linter: bool = True, as_json: bool = False) -> int:
+def _fetch_live_github_status(repo_slug: str, owner: str = "DontKwo") -> tuple[str, str]:
+    """Query latest CI conclusion and latest release tag/assets via gh CLI."""
+    if not shutil.which("gh"):
+        return "N/A", "N/A"
+    ci_state = "N/A"
+    rel_state = "N/A"
+    full_repo = f"{owner}/{repo_slug}"
+    run_res = subprocess.run(
+        ["gh", "run", "list", "-R", full_repo, "--limit", "1", "--json", "conclusion,status"],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    if run_res.returncode == 0 and run_res.stdout.strip():
+        try:
+            runs = json.loads(run_res.stdout)
+            if runs:
+                ci_state = str(runs[0].get("conclusion") or runs[0].get("status") or "unknown")
+        except json.JSONDecodeError:
+            ci_state = "ERR"
+
+    rel_res = subprocess.run(
+        ["gh", "release", "view", "-R", full_repo, "--json", "tagName,assets"],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    if rel_res.returncode == 0 and rel_res.stdout.strip():
+        try:
+            rel_data = json.loads(rel_res.stdout)
+            tag_name = str(rel_data.get("tagName") or "none")
+            asset_count = len(rel_data.get("assets", []))
+            rel_state = f"{tag_name} ({asset_count})"
+        except json.JSONDecodeError:
+            rel_state = "ERR"
+    return ci_state, rel_state
+
+
+def init_repo(repo_dir: Path, app_name: str, dry_run: bool = False) -> list[str]:
+    """Initialize a complete repository structure conforming to Rules 101-112."""
+    actions = standardize_repo(repo_dir, app_name, dry_run=dry_run)
+    repo_slug = repo_dir.name
+    ci_template = (BLUEPRINT_DIR / "ci-template.yml").read_text(encoding="utf-8")
+    rendered_ci = ci_template.replace("<AppName>", app_name).replace("<Repo>", repo_slug)
+
+    starter_files: dict[str, str] = {
+        ".aitools.toml": (
+            '[linter]\nprofile = "strict"\nlevel = "strict"\ndiff_only = true\n'
+            'ui_evidence = "tests/ui_evidence.json"\n\n[ui]\nframeworks = ["web"]\n'
+        ),
+        "AGENTS.md": f"# AI Agent Reference\n\nRepository instructions for {app_name}.\n",
+        "THIRD_PARTY_NOTICES.md": f"# Third-Party Notices\n\nAttributions for {app_name} dependencies.\n",
+        "docs/USER_GUIDE.md": (
+            f"# User Guide\n\nDownload {app_name} from [Latest Releases]"
+            f"(https://github.com/DontKwo/{repo_slug}/releases/latest).\n\n"
+            "## Related Documentation\n\n"
+            "- [Project Overview](../README.md)\n"
+            "- [Desktop Installation Guide](INSTALLATION.md)\n"
+            "- [Security Policy](../SECURITY.md)\n"
+        ),
+        "docs/DEVELOPMENT.md": (
+            f"# Developer Guide\n\nLocal build and test workflows for {app_name}.\n\n"
+            "## Related Documentation\n\n"
+            "- [Project Overview](../README.md)\n"
+            "- [User Guide](USER_GUIDE.md)\n"
+            "- [Security Policy](../SECURITY.md)\n"
+        ),
+        "docs/FAQ.md": (
+            f"# Frequently Asked Questions\n\nCommon questions for {app_name}.\n\n"
+            "## Related Documentation\n\n"
+            "- [Project Overview](../README.md)\n"
+            "- [User Guide](USER_GUIDE.md)\n"
+            "- [Security Policy](../SECURITY.md)\n"
+        ),
+        ".github/workflows/ci.yml": rendered_ci,
+    }
+
+    for rel_path, content in starter_files.items():
+        dest = repo_dir / rel_path
+        if not dest.is_file():
+            actions.append(f"Create {rel_path}")
+            if not dry_run:
+                dest.parent.mkdir(parents=True, exist_ok=True)
+                dest.write_text(content, encoding="utf-8")
+    return actions
+
+
+def run_status_all(projects_dir: Path, run_linter: bool = True, as_json: bool = False, check_live: bool = False) -> int:
     """Print cross-repository unification compliance table across all owned repositories."""
     repos = discover_project_repos(projects_dir)
     rows: list[dict[str, Any]] = []
@@ -158,25 +245,36 @@ def run_status_all(projects_dir: Path, run_linter: bool = True, as_json: bool = 
             link_status = "OK" if link_res.returncode == 0 else "FAIL"
         info["lint"] = lint_status
         info["links"] = link_status
+        if check_live:
+            ci_state, rel_state = _fetch_live_github_status(repo_dir.name)
+            info["ci"] = ci_state
+            info["release"] = rel_state
         rows.append(info)
 
     if as_json:
         print(json.dumps(rows, indent=2))  # noqa: 25
     else:
-        print(f"{'Repository':<20} {'MIT':<5} {'Brand':<6} {'Shots':<6} {'Lint':<6} {'Links':<6} {'Missing/Root Issues'}")  # noqa: 25
-        print("-" * 92)  # noqa: 25
+        header = f"{'Repository':<20} {'MIT':<5} {'Brand':<6} {'Shots':<6} {'Lint':<6} {'Links':<6}"
+        if check_live:
+            header += f" {'CI':<10} {'Release':<14}"
+        header += " Missing/Root Issues"
+        print(header)  # noqa: 25
+        print("-" * (118 if check_live else 92))  # noqa: 25
         for row in rows:
             issues = ", ".join(row["missing"] + [f"BANNED:{item}" for item in row["banned_root"]]) or "None"
-            print(  # noqa: 25
+            line = (
                 f"{row['name']:<20} "
                 f"{'YES' if row['license_mit'] else 'NO':<5} "
                 f"{'YES' if row['dual_brand'] else 'NO':<6} "
                 f"{row['screenshots']:<6} "
                 f"{row['lint']:<6} "
-                f"{row['links']:<6} "
-                f"{issues}"
+                f"{row['links']:<6}"
             )
-    return 0 if all(r["compliant"] and r["lint"] in ("CLEAN", "SKIP") and r["links"] in ("OK", "SKIP") for r in rows) else 1
+            if check_live:
+                line += f" {row.get('ci', 'N/A'):<10} {row.get('release', 'N/A'):<14}"
+            line += f" {issues}"
+            print(line)  # noqa: 25
+    return 0 if all(item["compliant"] and item["lint"] in ("CLEAN", "SKIP") and item["links"] in ("OK", "SKIP") for item in rows) else 1
 
 
 def main() -> int:
@@ -188,18 +286,27 @@ def main() -> int:
     std_p.add_argument("--app-name", default="")
     std_p.add_argument("--dry-run", action="store_true")
 
+    init_p = sub.add_parser("init-repo", help="Initialize full standard scaffold, docs, and CI workflow in a repo")
+    init_p.add_argument("target", nargs="?", default=".")
+    init_p.add_argument("--app-name", default="")
+    init_p.add_argument("--dry-run", action="store_true")
+
     stat_p = sub.add_parser("status-all", help="Audit all repositories in parent projects directory")
     stat_p.add_argument("--projects-dir", type=Path, default=REPO_ROOT.parent)
     stat_p.add_argument("--no-lint", action="store_true")
+    stat_p.add_argument("--live", action="store_true", help="Include live GitHub CI and release status")
     stat_p.add_argument("--json", action="store_true")
 
     args = parser.parse_args()
     if args.cmd == "status-all":
-        return run_status_all(args.projects_dir, run_linter=not args.no_lint, as_json=args.json)
+        return run_status_all(args.projects_dir, run_linter=not args.no_lint, as_json=args.json, check_live=args.live)
 
     target_dir = Path(getattr(args, "target", ".")).resolve()
     app_name = getattr(args, "app_name", "") or target_dir.name
-    actions = standardize_repo(target_dir, app_name, dry_run=getattr(args, "dry_run", False))
+    if args.cmd == "init-repo":
+        actions = init_repo(target_dir, app_name, dry_run=getattr(args, "dry_run", False))
+    else:
+        actions = standardize_repo(target_dir, app_name, dry_run=getattr(args, "dry_run", False))
     for action in actions:
         print(f"[+] {action}")  # noqa: 25
     if not actions:

@@ -543,6 +543,105 @@ class TestRepoStandardsRules(unittest.TestCase):
             detect_repo_standard_issues(root, [], all_codes, lambda _p, _ln, _c: False, clean_violations)
             self.assertEqual(clean_violations, [])
 
+    def _build_minimal_repo(self, root: Path) -> None:
+        (root / ".git").mkdir(exist_ok=True)
+        (root / "docs").mkdir(exist_ok=True)
+        (root / "assets" / "screenshots").mkdir(parents=True, exist_ok=True)
+        (root / ".github" / "workflows").mkdir(parents=True, exist_ok=True)
+        (root / "assets" / "logo.png").write_bytes(b"LOGO_BYTES")
+        (root / "assets" / "icon.png").write_bytes(b"ICON_BYTES")
+        (root / "assets" / "icon.ico").write_bytes(b"ICO_BYTES")
+        (root / "assets" / "screenshots" / "01_main.png").write_bytes(b"SHOT")
+        (root / "LICENSE").write_text("MIT License\n\nCopyright (c) 2026 DontKwo\n", encoding="utf-8")
+        (root / "SECURITY.md").write_text("# Security\n\nOnly `main` releases; do not download forked builds.\n", encoding="utf-8")
+        (root / "THIRD_PARTY_NOTICES.md").write_text("# Notices\n", encoding="utf-8")
+        (root / "AGENTS.md").write_text("# Agents\n", encoding="utf-8")
+        for doc_name in ("USER_GUIDE.md", "DEVELOPMENT.md", "INSTALLATION.md"):
+            (root / "docs" / doc_name).write_text(
+                f"# {doc_name}\n\n### Windows\nwin\n\n### macOS\nmac\n\n### Linux\nlin\n\n"
+                "## Related Documentation\n- [Overview](../README.md)\n",
+                encoding="utf-8",
+            )
+        (root / ".github" / "workflows" / "ci.yml").write_text(
+            "on:\n  push:\n    branches: [main]\n  pull_request:\n    branches: [main]\n"
+            "steps:\n  - run: python claudemd_linter.py . && python link_checker.py . && ./app --self-test\n"
+            "uses: softprops/action-gh-release@v2\nwith:\n  tag_name: ${{ steps.version.outputs.tag }}\n"
+            "  prerelease: false\n  make_latest: true\n",
+            encoding="utf-8",
+        )
+        (root / "README.md").write_text(
+            '<p align="center"><img src="assets/logo.png" width="240" /></p>\n\n# Demo\n\n'
+            "## Download\n\n"
+            "| Platform | Download |\n| :--- | :--- |\n"
+            "| Windows | [Demo-Windows.exe](https://github.com/DontKwo/demo/releases/latest/download/Demo-Windows.exe) |\n\n"
+            "## Screenshots\n\n<img src=\"assets/screenshots/01_main.png\" />\n\n"
+            "## Safety & Disclaimers\n\nOfficial `main` only.\n\n"
+            "## Documentation\n\n"
+            "### User Documentation\n- [User Guide](docs/USER_GUIDE.md)\n\n"
+            "### Developer Documentation\n- [Developer Guide](docs/DEVELOPMENT.md)\n\n"
+            "### Legal & Security Policies\n- [Security Policy](SECURITY.md)\n",
+            encoding="utf-8",
+        )
+
+    def test_rules_105_106_108_109_110_111_and_init_repo(self) -> None:
+        from scripts.repo_standards_rules import detect_repo_standard_issues
+        from scripts.repo_standardizer import init_repo
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            self._build_minimal_repo(root)
+
+            # Rule 105 (duplicate Windows links) & Rule 106 (missing APK/UV/OpenFOAM guides)
+            (root / "README.md").write_text(
+                (root / "README.md").read_text(encoding="utf-8").replace(
+                    "| Windows | [Demo-Windows.exe](https://github.com/DontKwo/demo/releases/latest/download/Demo-Windows.exe) |",
+                    "| Windows | [Demo-Windows.exe](https://github.com/DontKwo/demo/releases/latest/download/Demo-Windows.exe) |\n"
+                    "| Windows | [Demo-Windows.zip](https://github.com/DontKwo/demo/releases/latest/download/Demo-Windows.zip) |\n"
+                    "| Android | [Demo-Android.apk](https://github.com/DontKwo/demo/releases/latest/download/Demo-Android.apk) |",
+                ),
+                encoding="utf-8",
+            )
+            (root / "pyproject.toml").write_text('[project]\nname = "demo"\n# uses uv and simpleFoam OpenFOAM\n', encoding="utf-8")
+
+            # Rule 108 & Rule 109 violations
+            (root / ".github" / "workflows" / "ci.yml").write_text(
+                "on:\n  push:\n    branches: [main]\n    paths-ignore: ['*.md']\n"
+                "uses: softprops/action-gh-release@v2\nwith:\n  tag_name: main\n  prerelease: true\n",
+                encoding="utf-8",
+            )
+            (root / "LICENSE").write_text("GNU General Public License v3\n", encoding="utf-8")
+            (root / "SECURITY.md").write_text("# Security\n\nReport bugs.\n", encoding="utf-8")
+
+            # Rule 110 missing macOS/Linux headings without single_os override
+            (root / "docs" / "INSTALLATION.md").write_text(
+                "# Install\n\n### Windows\nwin\n\n## Related Documentation\n- [Overview](../README.md)\n",
+                encoding="utf-8",
+            )
+
+            # Rule 111 disallowed legacy GUI import
+            gui_file = root / "app_gui.py"
+            gui_file.write_text("import tkinter as tk\n", encoding="utf-8")
+
+            violations: list[tuple[Path, int, int]] = []
+            all_codes = set(range(101, 113))
+            detect_repo_standard_issues(root, [gui_file], all_codes, lambda _p, _ln, _c: False, violations)
+            found_codes = {code for _, _, code in violations}
+            self.assertTrue({105, 106, 108, 109, 110, 111}.issubset(found_codes))
+
+            # Verify single_os exemption silences Rule 110
+            (root / ".aitools.toml").write_text('[project]\nsingle_os = "windows"\n', encoding="utf-8")
+            win_only_violations: list[tuple[Path, int, int]] = []
+            detect_repo_standard_issues(root, [], {110}, lambda _p, _ln, _c: False, win_only_violations)
+            self.assertEqual(win_only_violations, [])
+
+        with tempfile.TemporaryDirectory() as scaffold_dir:
+            repo_path = Path(scaffold_dir) / "MySampleApp"
+            repo_path.mkdir()
+            actions = init_repo(repo_path, "MySampleApp")
+            self.assertGreater(len(actions), 5)
+            for req_file in ("README.md", "LICENSE", "SECURITY.md", "THIRD_PARTY_NOTICES.md", "AGENTS.md", "docs/USER_GUIDE.md", ".github/workflows/ci.yml"):
+                self.assertTrue((repo_path / req_file).is_file(), f"Missing {req_file}")
+
 
 if __name__ == "__main__":
     unittest.main()
