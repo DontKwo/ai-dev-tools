@@ -63,8 +63,8 @@ class TestMCPServer(unittest.TestCase):
         self.assertIn("lint ok", res[0].get("text", ""))
 
     def test_tools_list_count(self) -> None:
-        """Verify all 28 tools are defined."""
-        self.assertEqual(len(TOOLS), 28)
+        """Verify all 33 tools are defined."""
+        self.assertEqual(len(TOOLS), 33)
         for t in TOOLS:
             self.assertIn("name", t)
             self.assertIn("description", t)
@@ -215,6 +215,17 @@ class TestMCPServer(unittest.TestCase):
         mock_run.assert_called_once()
         cmd_arg = mock_run.call_args[0][0]
         self.assertIn("--check-external", cmd_arg)
+
+    @patch("mcp.server.run_command_tool")
+    def test_token_reduction_mcp_handlers(self, mock_run: MagicMock) -> None:
+        mock_run.return_value = "ok"
+        r1 = handle_tool_call("compress_command_output", {"command": "pytest", "raw_output": "1 passed in 0.1s\n"})
+        self.assertIn("RTK-Filter", r1[0]["text"])
+        handle_tool_call("ctx_execute", {"command_args": ["echo", "hi"]})
+        handle_tool_call("ctx_search_index", {"query": "linter"})
+        handle_tool_call("ctx_session_summary", {"action": "summary"})
+        handle_tool_call("analyze_blast_radius", {"target": "scripts/cli.py"})
+        self.assertEqual(mock_run.call_count, 4)
 
 
 if __name__ == "__main__":

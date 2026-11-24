@@ -34,6 +34,9 @@ COMMAND_MAP: dict[str, str] = {
     "tree": "dir_overview.py",
     "slice": "slice_file.py",
     "context": "pack_context.py",
+    "ctx": "context_mode.py",
+    "compress": "token_compressor.py",
+    "graph": "code_review_graph.py",
     "tokens": "token_budget.py",
     "diff": "redact_diff.py",
     "search": "fast_search.py",
@@ -71,6 +74,10 @@ COMMAND_MAP: dict[str, str] = {
 
 COMMAND_ALIASES: dict[str, str] = {
     "repo": "repo-map",
+    "rtk": "compress",
+    "context-mode": "ctx",
+    "review-graph": "graph",
+    "blast-radius": "graph",
     "rollback": "checkpoint",
     "sec": "secrets",
     "types": "type-coverage",
@@ -102,6 +109,9 @@ def print_usage() -> None:
     print("  grill         Interrogate plans, architecture, and tradeoffs\n")
     print("Context & Optimization:")
     print("  repo-map      Generate compact AST symbol and dependency trees")
+    print("  compress      Compress noisy terminal and test output (RTK filter)")
+    print("  ctx           Run Context Mode sandbox exec, FTS5 search, and session logs")
+    print("  graph         Build code review graph and transitive blast-radius impact")
     print("  tree          Display token-efficient directory hierarchy")
     print("  slice         Extract targeted line ranges from source files")
     print("  context       Bundle files into prompt packages with token counts")

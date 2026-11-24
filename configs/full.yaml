@@ -17,7 +17,7 @@ tools:
 profile:
   level: strict
   skip_rules: []
-  description: "All 91 rules active. Strict AST safety, writing hygiene, and code structure."
+  description: "All 112 rules active. Strict AST safety, writing hygiene, repo standards, and code structure."
 
 targets:
   claude_md: true

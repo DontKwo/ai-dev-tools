@@ -60,7 +60,7 @@ The linter provides tiered verification profiles. Strict evaluation remains the 
 
 | Profile | Level | Default Skips | Description |
 |:---|:---|:---|:---|
-| **`strict` (Default)** | `strict` | None | All 91 rules active: AST safety, type hints, anti-slop, formatting, and structural cleanliness. |
+| **`strict` (Default)** | `strict` | None | All 112 rules active: AST safety, type hints, anti-slop, UI quality, repo standards, and structural cleanliness. |
 | **`standard`** | `standard` | 1, 5, 17, 38 | Core AST safety, hallucination guards, dependencies, and secrets; relaxes prose style, comment limits, and single-letter variable checks. |
 | **`safe`** | `standard` | 1, 2, 3, 4, 5, 6, 7, 8, 11, 17, 18, 19, 23, 24, 25, 28, 31, 33, 34, 38 | Essential runtime safety: catches crashes, bad syntax, hallucinated imports, and secrets without enforcing style opinions. |
 
@@ -218,7 +218,7 @@ only = []
 | **99** | AI Shortcuts | AI deferred stub in production code (`# deferred: implement`, `# AI generated stub`, `# Implement later`) | Complete the production implementation. Avoid placeholder comments. <!-- noqa: 24 --> |
 | **100** | Code Quality | Hallucinated or invalid standard library import (non-existent module or incorrect type import) | Use canonical Python standard library modules and correct typing primitives (`str` instead of `String`). |
 | **101** | Repo Hygiene | Missing required root/doc/CI files or root scratch/design/binary artifacts (`PLAN.md`, `DESIGN.md`, root `.exe`/`.apk`) | Move technical facts to `docs/ARCHITECTURE.md` / `docs/VALIDATION.md`, remove root artifacts, add required files. |
-| **102** | README Layout | `README.md` violates user-first structure (`<= 120` lines, logo, `## Download`, `## Screenshots`, `## Safety & Disclaimers`, bottom `## Documentation`) | Format `README.md` from `templates/repo_blueprint/README_TEMPLATE.md` with local screenshots. |
+| **102** | README Layout | `README.md` violates user-first structure (`<= 120` lines, logo, `## Download`, `## Screenshots`, `## Documentation`, and trailing `## Safety & Disclaimers`) | Format `README.md` from `templates/repo_blueprint/README_TEMPLATE.md` with local screenshots and trailing disclaimers. |
 | **103** | README Purity | `README.md` contains checksums (`SHA256SUMS`), CI/CD explanations, `git clone`, or test/build commands | Move technical and build instructions into `docs/DEVELOPMENT.md` and remove checksum text. |
 | **104** | Circular Docs | Prose references backticked doc files instead of linking, or `docs/*.md` lacks `## Related Documentation` footer | Use direct clickable Markdown links everywhere and add `## Related Documentation` linking to `../README.md`. |
 | **105** | Minimal Downloads | `## Download` table repeats an OS platform or offers multiple archives per platform without justification | Keep one primary downloadable artifact per supported platform. |

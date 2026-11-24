@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Standard Model Context Protocol (MCP) Server for Developer's AI Tools.
-Exposes the 90-rule linter, safe auto-fixer, symbol map generator, and encoding cleaner
+Exposes the 112-rule linter, safe auto-fixer, token reducers, and encoding cleaner
 directly as native MCP tools to Claude, Cursor, Windsurf, Cline, and Antigravity.
 """
 
@@ -40,6 +40,9 @@ TYPE_COVERAGE_SCRIPT = REPO_ROOT / "scripts" / "type_coverage.py"
 AIUI_SCRIPT = REPO_ROOT / "scripts" / "aiui.py"
 SKILLS_SCRIPT = REPO_ROOT / "scripts" / "skills_manager.py"
 LINK_CHECKER_SCRIPT = REPO_ROOT / "scripts" / "link_checker.py"
+TOKEN_COMPRESSOR_SCRIPT = REPO_ROOT / "scripts" / "token_compressor.py"
+CONTEXT_MODE_SCRIPT = REPO_ROOT / "scripts" / "context_mode.py"
+CODE_REVIEW_GRAPH_SCRIPT = REPO_ROOT / "scripts" / "code_review_graph.py"
 
 IS_WINDOWS = platform.system() == "Windows"
 BASE_CMD: list[str] = (
@@ -90,7 +93,7 @@ def resolve_cwd(arguments: dict, target_key: str = "target") -> Path | None:
 TOOLS = [
     {
         "name": "run_linter",
-        "description": "Run the 90-rule claudemd linter against code/markdown files to detect AI writing fluff, syntax, and multi-framework UI flaws.",
+        "description": "Run the 112-rule claudemd linter against code/markdown files to detect AI writing fluff, syntax, repo standards, and UI flaws.",
         "inputSchema": {
             "type": "object",
             "properties": {
@@ -424,6 +427,72 @@ TOOLS = [
             },
         },
     },
+    {
+        "name": "compress_command_output",
+        "description": "Run a shell-free command through the RTK output compressor or filter verbose terminal text for 60-90% token savings.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "command": {"type": "string", "description": "Command name for selecting compression rules when filtering raw_output"},
+                "raw_output": {"type": "string", "description": "Optional pre-captured terminal output to compress"},
+                "run_args": {"type": "array", "items": {"type": "string"}, "description": "Optional command argument array to execute directly and compress"},
+                "cwd": {"type": "string", "description": "Working directory"},
+            },
+        },
+    },
+    {
+        "name": "ctx_execute",
+        "description": "Execute a subprocess in Context Mode, compressing and capping output to a concise summary.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "command_args": {"type": "array", "items": {"type": "string"}, "description": "Command and arguments to execute"},
+                "max_lines": {"type": "integer", "description": "Maximum summary lines (default: 80)"},
+                "cwd": {"type": "string", "description": "Working directory"},
+            },
+            "required": ["command_args"],
+        },
+    },
+    {
+        "name": "ctx_search_index",
+        "description": "Index workspace text files with SQLite FTS5 and retrieve BM25-ranked snippets for targeted queries.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "query": {"type": "string", "description": "Search query keywords"},
+                "target": {"type": "string", "description": "Repository root path (default: current directory)"},
+                "limit": {"type": "integer", "description": "Maximum snippets to return (default: 8)"},
+                "reindex": {"type": "boolean", "description": "Force incremental re-index before searching"},
+            },
+            "required": ["query"],
+        },
+    },
+    {
+        "name": "ctx_session_summary",
+        "description": "Record or retrieve Context Mode compaction continuity events and live git summary.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "action": {"type": "string", "enum": ["summary", "record"], "description": "Operation (default: summary)"},
+                "event_type": {"type": "string", "description": "Event category when action=record"},
+                "detail": {"type": "string", "description": "Event summary text when action=record"},
+                "target": {"type": "string", "description": "Repository root path"},
+            },
+        },
+    },
+    {
+        "name": "analyze_blast_radius",
+        "description": "Compute transitive dependents, affected unit tests, and risk score for a target file using code_review_graph.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "target": {"type": "string", "description": "File or repository path to analyze"},
+                "multi_lang": {"type": "boolean", "description": "Include TS/JS, Rust, Kotlin, C#, and PowerShell files"},
+                "cwd": {"type": "string", "description": "Repository working directory"},
+            },
+            "required": ["target"],
+        },
+    },
 ]
 
 
@@ -727,6 +796,59 @@ def _handle_check_links(arguments: dict, effective_cwd: Path | None) -> list[dic
     return [{"type": "text", "text": output}]
 
 
+def _handle_compress_command_output(arguments: dict, effective_cwd: Path | None) -> list[dict]:
+    run_args = arguments.get("run_args")
+    if isinstance(run_args, list) and run_args:
+        cmd = BASE_CMD + [str(TOKEN_COMPRESSOR_SCRIPT), "--run", "--"] + [str(part) for part in run_args]
+        output = run_command_tool(cmd, cwd=effective_cwd)
+        return [{"type": "text", "text": output}]
+    sys.path.insert(0, str(REPO_ROOT / "scripts"))
+    from token_compressor import compress_command_output as rtk_compress  # noqa: 13
+    compressed, savings = rtk_compress(str(arguments.get("command", "")), str(arguments.get("raw_output", "")))
+    return [{"type": "text", "text": f"[RTK-Filter: {savings * 100:.1f}% token savings]\n{compressed}"}]
+
+
+def _handle_ctx_execute(arguments: dict, effective_cwd: Path | None) -> list[dict]:
+    command_args = [str(part) for part in arguments.get("command_args", [])]
+    max_lines = str(arguments.get("max_lines", 80))
+    cmd = BASE_CMD + [str(CONTEXT_MODE_SCRIPT), "exec", "--max-lines", max_lines, "--"] + command_args
+    output = run_command_tool(cmd, cwd=effective_cwd)
+    return [{"type": "text", "text": output}]
+
+
+def _handle_ctx_search_index(arguments: dict, effective_cwd: Path | None) -> list[dict]:
+    query = str(arguments.get("query", ""))
+    target = str(arguments.get("target", "."))
+    limit = str(arguments.get("limit", 8))
+    cmd = BASE_CMD + [str(CONTEXT_MODE_SCRIPT), "search", query, target, "--limit", limit]
+    if arguments.get("reindex"):
+        cmd.append("--reindex")
+    output = run_command_tool(cmd, cwd=effective_cwd)
+    return [{"type": "text", "text": output}]
+
+
+def _handle_ctx_session_summary(arguments: dict, effective_cwd: Path | None) -> list[dict]:
+    action = str(arguments.get("action", "summary"))
+    target = str(arguments.get("target", "."))
+    if action == "record":
+        ev_type = str(arguments.get("event_type", "note"))
+        detail = str(arguments.get("detail", ""))
+        cmd = BASE_CMD + [str(CONTEXT_MODE_SCRIPT), "record", ev_type, detail, "--target", target]
+    else:
+        cmd = BASE_CMD + [str(CONTEXT_MODE_SCRIPT), "summary", target]
+    output = run_command_tool(cmd, cwd=effective_cwd)
+    return [{"type": "text", "text": output}]
+
+
+def _handle_analyze_blast_radius(arguments: dict, effective_cwd: Path | None) -> list[dict]:
+    target = str(arguments.get("target", "."))
+    cmd = BASE_CMD + [str(CODE_REVIEW_GRAPH_SCRIPT), target]
+    if arguments.get("multi_lang"):
+        cmd.append("--multi-lang")
+    output = run_command_tool(cmd, cwd=effective_cwd)
+    return [{"type": "text", "text": output}]
+
+
 TOOL_HANDLERS = {
     "run_linter": _handle_run_linter,
     "run_safe_fixer": _handle_run_safe_fixer,
@@ -756,6 +878,11 @@ TOOL_HANDLERS = {
     "ui_evidence_summary": _handle_ui_evidence_summary,
     "manage_skills": _handle_manage_skills,
     "check_links": _handle_check_links,
+    "compress_command_output": _handle_compress_command_output,
+    "ctx_execute": _handle_ctx_execute,
+    "ctx_search_index": _handle_ctx_search_index,
+    "ctx_session_summary": _handle_ctx_session_summary,
+    "analyze_blast_radius": _handle_analyze_blast_radius,
 }
 
 

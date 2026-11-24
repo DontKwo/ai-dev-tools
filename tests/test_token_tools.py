@@ -171,6 +171,19 @@ class TestTokenBudget(unittest.TestCase):
         output = format_token_distribution(counts, 0)
         self.assertEqual(output, "No tokens to distribute.")
 
+    def test_single_file_budget_displays_filename(self) -> None:
+        from io import StringIO
+        from unittest.mock import patch
+        from scripts.token_budget import print_budget_report
+
+        single_file = self.temp_dir / "example_doc.md"
+        single_file.write_text("# Hello\nSample tokens\n", encoding="utf-8")
+        results = scan_directory(single_file)
+        buf = StringIO()
+        with patch("sys.stdout", buf):
+            print_budget_report(results, single_file, threshold=5000)
+        self.assertIn("example_doc.md", buf.getvalue())
+
 
 
 if __name__ == "__main__":

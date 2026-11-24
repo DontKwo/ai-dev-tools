@@ -31,7 +31,7 @@ The repository includes two categories of skills:
 | `exhaustive-testing` | None | Drive interactive handlers, hostile inputs, and model-based invariants. |
 | `grill-user` | None | Walk decision trees in frontier rounds with repository fact-checks. |
 | `implicit-requirements` | None | Infer and verify unstated error handling, test, and performance checks. |
-| `lint-and-fix` | None | Run the 91-rule linter, UI audits, and safe auto-fixers. |
+| `lint-and-fix` | None | Run the 112-rule linter, UI audits, and safe auto-fixers. |
 | `prototype` | None | Build single-file HTML logic simulators and multi-variant UI spikes. |
 | `research` | None | Run isolated subagent investigations citing primary code and git history. |
 | `secret-sanitizer` | None | Scan source files and diffs for leaked credentials and API keys. |

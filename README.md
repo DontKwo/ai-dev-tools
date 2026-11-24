@@ -48,14 +48,6 @@ Browse release notes on [All Releases](https://github.com/DontKwo/ai-dev-tools/r
 
 ---
 
-## Safety & Disclaimers
-
-- **Official `main` Releases Only**: Download installers exclusively from [DontKwo/ai-dev-tools Releases](https://github.com/DontKwo/ai-dev-tools/releases/latest) (`main` branch). Never run forked builds unless you are sure they contain no malware; only official `main` releases are maintained by the author, and I make no promises.
-- **OS Security Warnings**: Windows SmartScreen and macOS Gatekeeper will likely warn that independently built executables are unrecognized or unsafe. Bypassing prompts is strictly at your own discretion following [Desktop Installation Guide](docs/INSTALLATION.md).
-- **Workspace Modification & AS-IS Disclaimer**: This tool creates and updates configuration, instruction, skill, and git hook files inside folders you select. Provided "AS IS" under the [MIT License](LICENSE) with zero warranty or liability; review change previews and back up files at your own risk.
-
----
-
 ## Documentation
 
 ### User Documentation
@@ -71,7 +63,7 @@ Browse release notes on [All Releases](https://github.com/DontKwo/ai-dev-tools/r
 - [YAML Configuration Guide](docs/power-users/yaml-guide.md)
 - [Rule Profiles Reference](docs/power-users/profiles.md)
 
-### AI, Mathematical Proof & Technical Documentation
+### AI & Technical Documentation
 - [AI Agent Rules](AGENTS.md)
 - [System Architecture](docs/ARCHITECTURE.md)
 - [112 Linter Rules Reference](docs/LINTER_RULES.md)
@@ -84,3 +76,11 @@ Browse release notes on [All Releases](https://github.com/DontKwo/ai-dev-tools/r
 - [Security Policy](SECURITY.md)
 - [Third-Party Notices](THIRD_PARTY_NOTICES.md)
 - [MIT License](LICENSE)
+
+---
+
+## Safety & Disclaimers
+
+- **Official `main` Releases Only**: Download installers exclusively from [DontKwo/ai-dev-tools Releases](https://github.com/DontKwo/ai-dev-tools/releases/latest) (`main` branch). Never run forked builds unless you are sure they contain no malware; only official `main` releases are maintained by the author, and I make no promises.
+- **OS Security Warnings**: Windows SmartScreen and macOS Gatekeeper will likely warn that independently built executables are unrecognized or unsafe. Bypassing prompts is strictly at your own discretion following [Desktop Installation Guide](docs/INSTALLATION.md).
+- **Workspace Modification & AS-IS Disclaimer**: This tool creates and updates configuration, instruction, skill, and git hook files inside folders you select. Provided "AS IS" under the [MIT License](LICENSE) with zero warranty or liability; review change previews and back up files at your own risk.

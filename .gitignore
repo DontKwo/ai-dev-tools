@@ -41,6 +41,8 @@ history.jsonl
 lint_report*.txt
 scripts/lint_report*.txt
 .lint_cache.json
+.ai_context_index.sqlite
+.ai_code_graph.sqlite
 .ruff_cache/
 *.log
 

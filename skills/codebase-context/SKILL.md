@@ -57,6 +57,16 @@ Measure token consumption across project files:
 aitools tokens [target]
 ```
 
+### 6. Output Compressor, Context Mode & Blast Radius Graph
+
+Compress noisy command logs, search indexed docs with FTS5 BM25, or trace impacted tests:
+
+```bash
+aitools compress --run -- pytest -q
+aitools ctx search "query terms" .
+aitools graph <file_or_directory>
+```
+
 ## Best Practice
 
 Target file slices and symbol maps instead of reading entire files into prompt context.

@@ -909,7 +909,7 @@ usage: aitools <command> [options...]
 
 Commands:
   doctor        Run diagnostics on environment, tool configs, and skills
-  lint          Run 90-rule AST, UI, and writing style linter
+  lint          Run 112-rule AST, UI, repo standards, and writing style linter
   fix           Run deterministic mechanical auto-fixers
   ui            Multi-framework UI manifest, evidence, and audit manager
   skills        Inspect, status, toggle, and sync agent skills across editors

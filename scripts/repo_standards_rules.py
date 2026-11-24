@@ -100,12 +100,12 @@ def _check_rule_102_readme(
             violations.append((readme_path, 1, 102))
             return
 
-    if not (dl_idx < shot_idx < safety_idx < docs_idx):
+    if not (dl_idx < shot_idx < docs_idx < safety_idx):
         violations.append((readme_path, _line_of_offset(content, shot_idx), 102))
     if "assets/screenshots/" not in content[shot_idx:docs_idx]:
         violations.append((readme_path, _line_of_offset(content, shot_idx), 102))
 
-    docs_sec = content[docs_idx:]
+    docs_sec = content[docs_idx:safety_idx] if docs_idx < safety_idx else content[docs_idx:]
     order_markers = ("### User Documentation", "### Developer Documentation", "### Legal & Security Policies")
     positions = [docs_sec.find(marker) for marker in order_markers]
     if any(pos == -1 for pos in positions) or not (positions[0] < positions[1] < positions[2]):

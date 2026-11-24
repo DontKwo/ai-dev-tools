@@ -532,6 +532,24 @@ class TestRepoStandardsRules(unittest.TestCase):
                 "| Platform | Download |\n| :--- | :--- |\n"
                 "| Windows | [Demo-Windows.exe](https://github.com/DontKwo/demo/releases/latest/download/Demo-Windows.exe) |\n\n"
                 "## Screenshots\n\n<img src=\"assets/screenshots/01_main.png\" />\n\n"
+                "## Documentation\n\n"
+                "### User Documentation\n- [User Guide](docs/USER_GUIDE.md)\n\n"
+                "### Developer Documentation\n- [Developer Guide](docs/DEVELOPMENT.md)\n\n"
+                "### Legal & Security Policies\n- [Security Policy](SECURITY.md)\n\n"
+                "## Safety & Disclaimers\n\nOfficial `main` only.\n",
+                encoding="utf-8",
+            )
+            clean_violations: list[tuple[Path, int, int]] = []
+            detect_repo_standard_issues(root, [], all_codes, lambda _p, _ln, _c: False, clean_violations)
+            self.assertEqual(clean_violations, [])
+
+            # Safety placed before Documentation must trigger Rule 102
+            (root / "README.md").write_text(
+                '<p align="center"><img src="assets/logo.png" width="240" /></p>\n\n# Demo\n\n'
+                "## Download\n\n"
+                "| Platform | Download |\n| :--- | :--- |\n"
+                "| Windows | [Demo-Windows.exe](https://github.com/DontKwo/demo/releases/latest/download/Demo-Windows.exe) |\n\n"
+                "## Screenshots\n\n<img src=\"assets/screenshots/01_main.png\" />\n\n"
                 "## Safety & Disclaimers\n\nOfficial `main` only.\n\n"
                 "## Documentation\n\n"
                 "### User Documentation\n- [User Guide](docs/USER_GUIDE.md)\n\n"
@@ -539,9 +557,9 @@ class TestRepoStandardsRules(unittest.TestCase):
                 "### Legal & Security Policies\n- [Security Policy](SECURITY.md)\n",
                 encoding="utf-8",
             )
-            clean_violations: list[tuple[Path, int, int]] = []
-            detect_repo_standard_issues(root, [], all_codes, lambda _p, _ln, _c: False, clean_violations)
-            self.assertEqual(clean_violations, [])
+            order_violations: list[tuple[Path, int, int]] = []
+            detect_repo_standard_issues(root, [], {102}, lambda _p, _ln, _c: False, order_violations)
+            self.assertEqual([c for _, _, c in order_violations], [102])
 
     def _build_minimal_repo(self, root: Path) -> None:
         (root / ".git").mkdir(exist_ok=True)
@@ -575,11 +593,11 @@ class TestRepoStandardsRules(unittest.TestCase):
             "| Platform | Download |\n| :--- | :--- |\n"
             "| Windows | [Demo-Windows.exe](https://github.com/DontKwo/demo/releases/latest/download/Demo-Windows.exe) |\n\n"
             "## Screenshots\n\n<img src=\"assets/screenshots/01_main.png\" />\n\n"
-            "## Safety & Disclaimers\n\nOfficial `main` only.\n\n"
             "## Documentation\n\n"
             "### User Documentation\n- [User Guide](docs/USER_GUIDE.md)\n\n"
             "### Developer Documentation\n- [Developer Guide](docs/DEVELOPMENT.md)\n\n"
-            "### Legal & Security Policies\n- [Security Policy](SECURITY.md)\n",
+            "### Legal & Security Policies\n- [Security Policy](SECURITY.md)\n\n"
+            "## Safety & Disclaimers\n\nOfficial `main` only.\n",
             encoding="utf-8",
         )
 

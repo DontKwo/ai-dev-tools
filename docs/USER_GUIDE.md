@@ -24,7 +24,7 @@ adt init                  # Run interactive configuration wizard
 ```
 
 ### 2. Lint Changes (`ailint` / `adt lint`)
-Run the 91-rule AST and style linter. By default, it checks only files modified in git:
+Run the 112-rule AST, UI, repo standards, and style linter. By default, it checks only files modified in git:
 ```bash
 adt lint
 ```
@@ -32,7 +32,7 @@ To run with a specific rule profile:
 ```bash
 adt lint --profile safe       # Essential bug, hallucination, and security checks
 adt lint --profile standard   # AST safety and dependencies with relaxed prose checks
-adt lint --profile strict     # Full 91-rule enforcement (default)
+adt lint --profile strict     # Full 112-rule enforcement (default)
 ```
 To run a full audit across the entire repository:
 ```bash
@@ -119,16 +119,17 @@ When you need specific diagnostics from the command line:
 - **Type Booster (`aiboost`)**: Infer parameter and return type hints based on default values and call sites.
 - **Dependency Guard (`aideps`)**: Scan for undeclared external imports or hallucinated package names.
 - **Encoding Cleaner (`scripts/clean_encoding.py`)**: Repair mojibake and double-encoded UTF-8 sequences.
-- **Codebase Context (`airepo`, `aitree`, `aislice`)**: Generate compact AST symbol trees, directory hierarchies, or file slices.
+- **Codebase Context & Token Reduction (`airepo`, `aitree`, `aislice`, `aicompress`, `aictx`, `aigraph`)**: Generate compact AST symbol trees, directory hierarchies, file slices, compressed CLI/test logs, FTS5 search snippets, and blast-radius impact maps.
+- **Setup Assistant GUI (`adt gui`)**: Configure workspaces visually with live change previews and one-click backups.
 
 ## Power User Reference
 
-- [docs/DEV_MANUAL.md](DEV_MANUAL.md): Full CLI flags and programmatic APIs for every script.
-- [docs/RULE_FILES.md](RULE_FILES.md): Supported assistants, root vs global rule files, and synchronization.
-- [docs/SKILLS_GUIDE.md](SKILLS_GUIDE.md): Autonomous agent skills catalog and execution model.
-- [docs/LINTER_RULES.md](LINTER_RULES.md): Specifications for all 91 linter rules.
-- [docs/SETUP_GUIDE.md](SETUP_GUIDE.md): Installation details across operating systems.
-- [docs/FAQ.md](FAQ.md): Common questions, verification levels, and rule suppressions.
+- [Developer Manual](DEV_MANUAL.md): Full CLI flags and programmatic APIs for every script.
+- [Rule Files Reference](RULE_FILES.md): Supported assistants, root vs global rule files, and synchronization.
+- [Agent Skills Guide](SKILLS_GUIDE.md): Autonomous agent skills catalog and execution model.
+- [112 Linter Rules Reference](LINTER_RULES.md): Specifications for all 112 linter rules.
+- [Setup Guide](SETUP_GUIDE.md): Installation details across operating systems.
+- [Frequently Asked Questions](FAQ.md): Common questions, verification levels, and rule suppressions.
 
 
 ---

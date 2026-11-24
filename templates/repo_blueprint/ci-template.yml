@@ -153,3 +153,36 @@ jobs:
           generate_release_notes: true
           files: |
             release-dist/*
+
+  update-screenshots:
+    name: Refresh Out-of-Sync Screenshots
+    needs: test
+    if: (github.event_name == 'push' && github.ref == 'refs/heads/main' && github.actor != 'github-actions[bot]' && !contains(github.event.head_commit.message, '[skip ci]')) || github.event_name == 'workflow_dispatch'
+    permissions:
+      contents: write
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Checkout ai-dev-tools
+        uses: actions/checkout@v4
+        with:
+          repository: DontKwo/ai-dev-tools
+          path: .toolchain/ai-dev-tools
+
+      - name: Capture and sync changed PNGs
+        run: |
+          mkdir -p /tmp/fresh-shots
+          echo "Run repo capture script outputting to /tmp/fresh-shots"
+          uv run --no-project --with pillow python .toolchain/ai-dev-tools/scripts/capture_screenshots.py --sync-dir /tmp/fresh-shots assets/screenshots --threshold 2.0
+          if [ -n "$(git status --porcelain assets/screenshots)" ]; then
+            git config user.name "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git add assets/screenshots
+            git commit -m "chore(screenshots): refresh app screenshots [skip ci]"
+            git pull --rebase origin main || true
+            git push origin HEAD:main
+          fi

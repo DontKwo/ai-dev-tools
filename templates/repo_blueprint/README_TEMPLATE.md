@@ -49,14 +49,6 @@ Browse release notes on [All Releases](https://github.com/DontKwo/<Repo>/release
 
 ---
 
-## Safety & Disclaimers
-
-- **Official `main` Releases Only**: Only download installers, executables, or APKs from [DontKwo/<Repo>](https://github.com/DontKwo/<Repo>/releases/latest) (`main` branch). Never download forked builds unless you are certain they contain no malware; only the `main` release stream is maintained by the author, and I make no promises.
-- **OS & Phone Security Warnings**: Windows SmartScreen, macOS Gatekeeper, and Android Play Protect will likely flag independently published apps as unrecognized or unsafe. Bypassing those prompts is strictly at your own discretion. Follow [Desktop Installation Guide](docs/INSTALLATION.md) or [Android APK Installation Guide](docs/APK_INSTALLATION.md) for exact steps.
-- **AS-IS Disclaimer**: Provided "AS IS" under the [MIT License](LICENSE) with zero warranty or liability. Use at your own risk and back up important data before modifying files or system settings.
-
----
-
 ## Documentation
 
 ### User Documentation
@@ -69,7 +61,7 @@ Browse release notes on [All Releases](https://github.com/DontKwo/<Repo>/release
 - [Developer Guide](docs/DEVELOPMENT.md)
 - [Developer uv Installation](docs/UV_INSTALLATION.md)
 
-### AI, Mathematical Proof & Technical Documentation
+### AI & Technical Documentation
 - [AI Agent Rules](AGENTS.md)
 - [System Architecture](docs/ARCHITECTURE.md)
 
@@ -77,3 +69,11 @@ Browse release notes on [All Releases](https://github.com/DontKwo/<Repo>/release
 - [Security Policy](SECURITY.md)
 - [Third-Party Notices](THIRD_PARTY_NOTICES.md)
 - [MIT License](LICENSE)
+
+---
+
+## Safety & Disclaimers
+
+- **Official `main` Releases Only**: Only download installers, executables, or APKs from [DontKwo/<Repo>](https://github.com/DontKwo/<Repo>/releases/latest) (`main` branch). Never download forked builds unless you are certain they contain no malware; only the `main` release stream is maintained by the author, and I make no promises.
+- **OS & Phone Security Warnings**: Windows SmartScreen, macOS Gatekeeper, and Android Play Protect will likely flag independently published apps as unrecognized or unsafe. Bypassing those prompts is strictly at your own discretion. Follow [Desktop Installation Guide](docs/INSTALLATION.md) or [Android APK Installation Guide](docs/APK_INSTALLATION.md) for exact steps.
+- **AS-IS Disclaimer**: Provided "AS IS" under the [MIT License](LICENSE) with zero warranty or liability. Use at your own risk and back up important data before modifying files or system settings.

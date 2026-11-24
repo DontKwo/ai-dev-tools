@@ -2,12 +2,6 @@
 
 Install and launch `<AppName>` on your computer without Python, Node.js, or developer tools.
 
-## Safety & Authenticity Warning
-
-- **Official `main` Releases Only**: Download `<AppName>` exclusively from [DontKwo/<Repo> Releases](https://github.com/DontKwo/<Repo>/releases/latest).
-- **Fork Warning**: Never download builds from forked repositories unless you have verified the source code yourself and know they do not contain malware. Only official `main` releases are maintained by the author, and I make no promises.
-- **Bypassing Security Prompts**: Because independent open-source executables do not carry paid commercial signing certificates, Windows and macOS will warn that the app is unrecognized or potentially unsafe. Bypassing these warnings is strictly at your own discretion, and the software is provided "AS IS" with zero liability.
-
 ---
 
 ## Platform Installation Instructions
@@ -37,6 +31,14 @@ Install and launch `<AppName>` on your computer without Python, Node.js, or deve
 2. Extract the archive in your file manager (or run `tar -xzf <AppName>-Linux.tar.gz`).
 3. Make the extracted binary executable (right-click -> **Properties** -> **Permissions** -> allow executing as program, or run `chmod +x <AppName>`).
 4. Double-click `<AppName>` (or run `./install.sh` if included in the archive) to launch.
+
+---
+
+## Safety & Authenticity Warning
+
+- **Official `main` Releases Only**: Download `<AppName>` exclusively from [DontKwo/<Repo> Releases](https://github.com/DontKwo/<Repo>/releases/latest).
+- **Fork Warning**: Never download builds from forked repositories unless you have verified the source code yourself and know they do not contain malware. Only official `main` releases are maintained by the author, and I make no promises.
+- **Bypassing Security Prompts**: Because independent open-source executables do not carry paid commercial signing certificates, Windows and macOS will warn that the app is unrecognized or potentially unsafe. Bypassing these warnings is strictly at your own discretion, and the software is provided "AS IS" with zero liability.
 
 ---
 

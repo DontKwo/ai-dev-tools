@@ -2,12 +2,6 @@
 
 Install and launch the `AI-Dev-Tools` Setup Assistant on your computer without Python or terminal commands.
 
-## Safety & Authenticity Warning
-
-- **Official `main` Releases Only**: Download `AI-Dev-Tools` exclusively from [DontKwo/ai-dev-tools Releases](https://github.com/DontKwo/ai-dev-tools/releases/latest).
-- **Fork Warning**: Never download executables from forked repositories unless you have verified the source code yourself and know they do not contain malware. Only official `main` releases are maintained by the author, and I make no promises.
-- **Bypassing Security Prompts**: Because independent open-source executables do not carry paid commercial signing certificates, Windows and macOS will warn that the app is unrecognized or potentially unsafe. Bypassing these warnings is strictly at your own discretion, and the software is provided "AS IS" with zero liability.
-
 ---
 
 ## Platform Installation Instructions
@@ -36,6 +30,14 @@ Install and launch the `AI-Dev-Tools` Setup Assistant on your computer without P
 1. Download `adt-setup-Linux.tar.gz` from [Latest Releases](https://github.com/DontKwo/ai-dev-tools/releases/latest).
 2. Extract the archive in your file manager (or run `tar -xzf adt-setup-Linux.tar.gz`).
 3. Ensure execute permission (`chmod +x adt-setup-Linux`) and launch the application.
+
+---
+
+## Safety & Authenticity Warning
+
+- **Official `main` Releases Only**: Download `AI-Dev-Tools` exclusively from [DontKwo/ai-dev-tools Releases](https://github.com/DontKwo/ai-dev-tools/releases/latest).
+- **Fork Warning**: Never download executables from forked repositories unless you have verified the source code yourself and know they do not contain malware. Only official `main` releases are maintained by the author, and I make no promises.
+- **Bypassing Security Prompts**: Because independent open-source executables do not carry paid commercial signing certificates, Windows and macOS will warn that the app is unrecognized or potentially unsafe. Bypassing these warnings is strictly at your own discretion, and the software is provided "AS IS" with zero liability.
 
 ---
 

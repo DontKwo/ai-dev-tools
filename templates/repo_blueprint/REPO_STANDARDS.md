@@ -4,19 +4,19 @@ Every repository maintained under the `DontKwo` unified standards follows a cons
 
 ## Core Blueprint Files
 
-- [README Template](README_TEMPLATE.md): User-first project overview (`<= 120` lines) with centered logo, top [Download Table](README_TEMPLATE.md#download), real [Screenshots](README_TEMPLATE.md#screenshots), usage overview, features, disclaimers, and ordered documentation index.
+- [README Template](README_TEMPLATE.md): User-first project overview (`<= 120` lines) with centered logo, top [Download Table](README_TEMPLATE.md#download), real [Screenshots](README_TEMPLATE.md#screenshots) (side-by-side desktop + mobile for multi-platform apps), usage overview, features, ordered [Documentation Index](README_TEMPLATE.md#documentation), and trailing [Safety & Disclaimers](README_TEMPLATE.md#safety--disclaimers).
 - [MIT License](LICENSE_MIT.txt): Canonical MIT License (`Copyright (c) 2026 DontKwo`).
 - [Security Policy Template](SECURITY_TEMPLATE.md): Official `main`-only support statement, fork malware warning, OS/mobile prompt bypass discretion notice, and private reporting workflow.
-- [Desktop Installation Template](INSTALLATION.md): Per-platform SmartScreen, Gatekeeper (`xattr`), and Linux executable setup instructions.
-- [Android APK Installation Template](APK_INSTALLATION.md): Six-step Android sideloading instructions covering Samsung Auto Blocker, Install Unknown Apps, Google Play Protect, and Android 13 to 15 Restricted Settings.
+- [Desktop Installation Template](INSTALLATION.md): Per-platform SmartScreen, Gatekeeper (`xattr`), and Linux executable setup instructions with warnings placed cleanly below install steps.
+- [Android APK Installation Template](APK_INSTALLATION.md): Six-step Android sideloading instructions covering Samsung Auto Blocker, Install Unknown Apps, Google Play Protect, and Android 13 to 15 Restricted Settings with warnings at the bottom.
 - [Developer uv Installation Template](UV_INSTALLATION.md): Cross-platform developer environment setup for Astral `uv`.
 - [OpenFOAM Installation Template](OPENFOAM_INSTALLATION.md): Cross-platform WSL2, native Ubuntu/Debian, and macOS Docker instructions for OpenFOAM.
-- [CI & Release Workflow Template](ci-template.yml): Unified four-stage workflow (`lint` -> `test` -> `build` -> `release`) triggering on `main` pushes, `v*` tags, and pull requests, publishing `vX.Y.Z` releases with `prerelease: false` and `make_latest: true`.
+- [CI & Release Workflow Template](ci-template.yml): Unified pipeline (`lint` -> `test` -> `build` -> `release` plus `update-screenshots`) triggering on `main` pushes, `v*` tags, and pull requests, publishing `vX.Y.Z` releases with `prerelease: false` and `make_latest: true`.
 
 ## Compliance Summary (Rules 101 to 112)
 
 1. **Repository Hygiene (101)**: Include standard root legal, agent, user, developer, and CI files; remove temporary plan or design notes and compiled root executables.
-2. **README Structure (102)**: Keep the main overview concise (`<= 120` lines), place downloads above screenshots and disclaimers, and order documentation User, Developer, AI/Technical, and Legal.
+2. **README Structure (102)**: Keep the main overview concise (`<= 120` lines), place downloads and current screenshots above features and ordered documentation (`User`, `Developer`, `AI & Technical` renamed accurately if no mathematical proofs exist, and `Legal`), and place `## Safety & Disclaimers` at the end of `README.md` (and warnings at the bottom of installation docs). Show Desktop and Android screenshots side by side for cross-platform desktop+mobile apps.
 3. **README Purity (103)**: Keep test commands, build scripts, checksums, CI explanations, and clone commands out of the user README and inside developer documentation.
 4. **Circular & Clickable Links (104)**: Link every referenced file directly in prose and end every guide under the documentation folder with a `## Related Documentation` footer linking back to [Linter Rules Reference](../../docs/LINTER_RULES.md) or the repository overview.
 5. **Minimal Downloads (105)**: List at most one primary release download per OS platform unless compatibility requires a split.

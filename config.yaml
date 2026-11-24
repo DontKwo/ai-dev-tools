@@ -29,7 +29,7 @@ tools:
 
 # Rule Profile: Controls linter strictness and instruction depth
 # Built-in profile levels:
-# - 'strict': Default verification (91 rules: AST safety, typing, anti-slop, formatting, clean structure)
+# - 'strict': Default verification (112 rules: AST safety, typing, anti-slop, repo standards, clean structure)
 # - 'standard': Core safety, relaxes comment length and math variables
 # - 'safe': Essential runtime safety (crashes, bad syntax, hallucinated imports, secrets)
 # - 'minimal': Critical runtime guards only

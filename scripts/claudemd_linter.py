@@ -141,7 +141,7 @@ LEGEND = {
     99: "AI deferred stub in production code (TODO: implement, AI placeholder, or incomplete implementation).",
     100: "Hallucinated or invalid standard library import (non-existent module or incorrect type import).",
     101: "Missing required repo standard file (README.md, LICENSE, SECURITY.md, THIRD_PARTY_NOTICES.md, AGENTS.md, docs/USER_GUIDE.md, docs/DEVELOPMENT.md, ci.yml) or banned root clutter present.",
-    102: "README.md violates canonical user-first layout (<=120 lines, assets/logo.png, ## Download, ## Screenshots with real local images, ## Safety & Disclaimers, bottom ## Documentation ordered User -> Developer -> Legal).",
+    102: "README.md violates canonical user-first layout (<=120 lines, assets/logo.png, ## Download, ## Screenshots with real local images, ## Documentation ordered User -> Developer -> Legal, and trailing ## Safety & Disclaimers).",
     103: "README.md leaks internal engineering details (checksums/SHA256SUMS, CI/CD workflow prose, git clone, test runners, or build commands).",
     104: "Markdown file uses unlinked backticked doc filename or docs/*.md lacks a '## Related Documentation' footer linking back to ../README.md.",
     105: "README.md ## Download table duplicates platforms or offers multiple assets per single platform without compatibility waiver.",

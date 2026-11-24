@@ -93,6 +93,8 @@ def print_budget_report(results: list[tuple[Path, dict[str, int]]], root: Path, 
             rel = str(path.relative_to(root))
         except ValueError:
             rel = str(path)
+        if rel == ".":
+            rel = path.name
 
         if len(rel) > 44:
             rel = "..." + rel[-41:]
@@ -135,6 +137,8 @@ def main() -> None:
                 rel = str(path.relative_to(root))
             except ValueError:
                 rel = str(path)
+            if rel == ".":
+                rel = path.name
             file_counts[rel] = info["tokens"]
         total_tokens = sum(info["tokens"] for _, info in results)
         print(format_token_distribution(file_counts, total_tokens))

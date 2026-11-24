@@ -2,13 +2,6 @@
 
 Install the standalone Android app directly on your Android phone or tablet (Android 8 through Android 15, including Pixel and Samsung Galaxy One UI).
 
-## Safety & Authenticity Warning
-
-- **Security Prompts Are Expected**: Your phone will likely tell you the app is unrecognized, unverified, or potentially unsafe because this `.apk` is distributed directly from GitHub outside the Google Play Store.
-- **Official `main` Releases Only**: Only `.apk` files published on the official [DontKwo/<Repo> Releases](https://github.com/DontKwo/<Repo>/releases/latest) page (`main` branch) are maintained by the author.
-- **Fork Warning**: Never download forked `.apk` releases unless you are completely sure they do not contain malware. Only official `main` releases have no malware to the best of the author's knowledge, and I still make no promises.
-- **Your Discretion & Zero Liability**: Bypassing Android security prompts is strictly at your own discretion. This software is provided "AS IS" under the [MIT License](../LICENSE) with zero warranty or liability.
-
 ---
 
 ## Step 1: Download the Official APK
@@ -73,6 +66,15 @@ After `<AppName>` finishes installing:
 1. Turn **Allow from this source** back **Off** for your browser or file manager.
 2. Confirm **Google Play Protect** scanning is **On**.
 3. On Samsung Galaxy devices, turn **Auto Blocker** back **On**.
+
+---
+
+## Safety & Authenticity Warning
+
+- **Security Prompts Are Expected**: Your phone will likely tell you the app is unrecognized, unverified, or potentially unsafe because this `.apk` is distributed directly from GitHub outside the Google Play Store.
+- **Official `main` Releases Only**: Only `.apk` files published on the official [DontKwo/<Repo> Releases](https://github.com/DontKwo/<Repo>/releases/latest) page (`main` branch) are maintained by the author.
+- **Fork Warning**: Never download forked `.apk` releases unless you are completely sure they do not contain malware. Only official `main` releases have no malware to the best of the author's knowledge, and I still make no promises.
+- **Your Discretion & Zero Liability**: Bypassing Android security prompts is strictly at your own discretion. This software is provided "AS IS" under the [MIT License](../LICENSE) with zero warranty or liability.
 
 ---
 

@@ -12,6 +12,8 @@ This document summarizes the modular architecture of `ai-dev-tools`, including i
    - `templates/repo_blueprint/` provides the single source of truth for MIT `LICENSE`, `SECURITY.md`, `README.md`, `INSTALLATION.md`, `APK_INSTALLATION.md`, `UV_INSTALLATION.md`, `OPENFOAM_INSTALLATION.md`, and `.github/workflows/ci.yml`.
 3. **112-Rule Verification Engine (`scripts/claudemd_linter.py`, `scripts/repo_standards_rules.py`, `scripts/link_checker.py`)**:
    - Combines AST static checks (Rules 1-45, 91-100), UI manifest/evidence audits (Rules 46-90), and cross-repository standards (Rules 101-112).
+4. **Token-Reduction & Code Graph Layer (`scripts/token_compressor.py`, `scripts/context_mode.py`, `scripts/code_review_graph.py`, `scripts/repo_map.py`)**:
+   - Compresses noisy test/git outputs (60-90% savings), provides SQLite FTS5 BM25 search and compaction continuity recovery, and computes transitive blast radius and affected tests before edits.
 
 ## Data Loss Protection
 
